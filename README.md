@@ -10,9 +10,7 @@ Cartridge-8 é um projeto de console retrô fictício com interface de "console"
 - Jogos adicionais: pasta `games/`
 
 ## Demo online
-Se disponível, o demo pode ser acessado em GitHub Pages (link do projeto):
-
-https://asafegamer05-glitch.github.io/Cartridge-8/
+Demo hospedado (GitHub Pages): https://asafegamer05-glitch.github.io/Cartridge-8/
 
 ## Recursos
 - Interface estilo console com estante 3D
@@ -48,6 +46,3 @@ Abra `http://localhost:8000/games/demo/index.html` para testar o demo.
 ## Licença
 Este projeto está licenciado sob a licença MIT — veja o arquivo [LICENSE](LICENSE) para detalhes.
 
----
-
-Se quiser que eu ajuste o `README.md` (adicionar badges, `LICENSE`, ou informações de contato), diga o que prefere que eu inclua.
