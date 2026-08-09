@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Cartridge-8 OS v1.2</title>
-  <meta name="description" content="Cartridge-8 — Console fictício retro v1.2 com filtro de TV de tubo, estante de cartuchos 3D e aplicativos integrados.">
+  <title>Cartridge-8 OS v1.3</title>
+  <meta name="description" content="Cartridge-8 â€” Console fictÃ­cio retro v1.3 com filtro de TV de tubo, estante de cartuchos 3D e aplicativos integrados.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap" rel="stylesheet">
@@ -25,79 +25,84 @@
       <!-- Wrapper da tela -->
       <div id="screen-wrapper">
 
-        <!-- Conteúdo da tela -->
+        <!-- ConteÃºdo da tela -->
         <div id="screen">
 
-          <!-- ── TERMINAL / BOOT ── -->
+          <!-- â”€â”€ TERMINAL / BOOT â”€â”€ -->
           <div id="view-terminal" class="view active" role="main">
             <div id="terminal-header">
-              <span id="term-bios-label">C8-BIOS v1.2.0</span>
+              <span id="term-bios-label">C8-BIOS v1.3.0</span>
               <span id="term-status">AGUARDANDO</span>
             </div>
             <div id="terminal-output" role="log" aria-live="polite"></div>
             <div id="terminal-input-line">
               <span class="prompt">&#62;</span>
               <span id="terminal-input-text"></span>
-              <span class="cursor" id="terminal-cursor" aria-hidden="true">█</span>
+              <span class="cursor" id="terminal-cursor" aria-hidden="true">â–ˆ</span>
             </div>
           </div>
 
-          <!-- ── MENU PRINCIPAL (DASHBOARD CONSOLE OS v1.2) ── -->
+          <!-- â”€â”€ MENU PRINCIPAL (DASHBOARD CONSOLE OS v1.3) â”€â”€ -->
           <div id="view-menu" class="view" role="navigation" aria-label="Menu principal">
             <!-- HUD Superior de Console -->
             <div id="menu-hud-bar">
-              <div class="hud-item"><span class="hud-led"></span> OS v1.2</div>
+              <div class="hud-item"><span class="hud-led"></span> OS v1.3</div>
               <div class="hud-item hud-center"><span class="hud-accent">CARTRIDGE-8</span> SYSTEM DASHBOARD</div>
-              <div class="hud-item">64KB RAM · VRAM OK</div>
+              <div class="hud-item">64KB RAM Â· VRAM OK</div>
             </div>
 
             <div id="menu-header">
               <div class="menu-logo">CARTRIDGE<span class="logo-accent">-8</span></div>
-              <div class="menu-subtitle">SISTEMA OPERACIONAL v1.2</div>
+              <div class="menu-subtitle">SISTEMA OPERACIONAL v1.3</div>
               <div class="menu-divider"></div>
             </div>
 
             <!-- Carrossel horizontal de abas do console -->
-            <div id="menu-carousel" role="listbox" aria-label="Opções do menu">
-              <button class="menu-nav-arrow" id="menu-nav-left" aria-label="Anterior">◀</button>
+            <div id="menu-carousel" role="listbox" aria-label="OpÃ§Ãµes do menu">
+              <button class="menu-nav-arrow" id="menu-nav-left" aria-label="Anterior">â—€</button>
 
               <div id="menu-cards-wrap" aria-live="polite">
                 <div class="menu-card" data-action="play" data-index="0" role="option" tabindex="0">
-                  <div class="card-icon">🎮</div>
+                  <div class="card-icon">ðŸŽ®</div>
                   <div class="card-title">JOGAR</div>
                   <div class="card-desc">Estante de Cartuchos 3D</div>
                 </div>
                 <div class="menu-card" data-action="apps" data-index="1" role="option" tabindex="-1">
-                  <div class="card-icon">📱</div>
+                  <div class="card-icon">ðŸ“±</div>
                   <div class="card-title">APLICATIVOS</div>
                   <div class="card-desc">Sintetizador e Pixel Art</div>
                 </div>
                 <div class="menu-card" data-action="library" data-index="2" role="option" tabindex="-1">
-                  <div class="card-icon">📼</div>
+                  <div class="card-icon">ðŸ“¼</div>
                   <div class="card-title">BIBLIOTECA</div>
-                  <div class="card-desc">Coleção de Jogos</div>
+                  <div class="card-desc">ColeÃ§Ã£o de Jogos</div>
                 </div>
-                <div class="menu-card" data-action="controller" data-index="3" role="option" tabindex="-1">
-                  <div class="card-icon">🕹️</div>
+                <div class="menu-card" data-action="profiles" data-index="3" role="option" tabindex="-1">
+                  <div class="card-icon">ðŸ‘¤</div>
+                  <div class="card-title">PERFIS</div>
+                  <div class="card-desc">Trocar ou Criar Perfil</div>
+                </div>
+                <div class="menu-card" data-action="controller" data-index="4" role="option" tabindex="-1">
+                  <div class="card-icon">ðŸ•¹ï¸</div>
                   <div class="card-title">CONTROLE</div>
                   <div class="card-desc">Testar Gamepad</div>
                 </div>
-                <div class="menu-card" data-action="options" data-index="4" role="option" tabindex="-1">
-                  <div class="card-icon">⚙️</div>
-                  <div class="card-title">OPÇÕES</div>
-                  <div class="card-desc">Vídeo e Filtro CRT</div>
+                <div class="menu-card" data-action="options" data-index="5" role="option" tabindex="-1">
+                  <div class="card-icon">âš™ï¸</div>
+                  <div class="card-title">OPÃ‡Ã•ES</div>
+                  <div class="card-desc">VÃ­deo e Filtro CRT</div>
                 </div>
-                <div class="menu-card" data-action="about" data-index="5" role="option" tabindex="-1">
-                  <div class="card-icon">ℹ️</div>
+                <div class="menu-card" data-action="about" data-index="6" role="option" tabindex="-1">
+                  <div class="card-icon">â„¹ï¸</div>
                   <div class="card-title">SOBRE</div>
-                  <div class="card-desc">Especificações v1.2</div>
+                  <div class="card-desc">EspecificaÃ§Ãµes v1.3</div>
                 </div>
               </div>
 
-              <button class="menu-nav-arrow" id="menu-nav-right" aria-label="Próximo">▶</button>
+              <button class="menu-nav-arrow" id="menu-nav-right" aria-label="PrÃ³ximo">â–¶</button>
             </div>
 
-            <!-- Indicadores de posição -->
+            <!-- Indicadores de posiÃ§Ã£o -->
             <div id="menu-dots" aria-hidden="true">
               <div class="menu-dot" data-index="0"></div>
               <div class="menu-dot" data-index="1"></div>
@@ -105,50 +110,53 @@
               <div class="menu-dot" data-index="3"></div>
               <div class="menu-dot" data-index="4"></div>
               <div class="menu-dot" data-index="5"></div>
+              <div class="menu-dot" data-index="6"></div>
             </div>
 
+            <div id="menu-profile-badge" class="menu-profile-badge" aria-live="polite"></div>
+
             <div id="menu-footer">
-              <span>◀ ▶ NAVEGAR</span>
-              <span class="foot-sep">·</span>
+              <span>â—€ â–¶ NAVEGAR</span>
+              <span class="foot-sep">Â·</span>
               <span>ENTER / A SELECIONAR</span>
-              <span class="foot-sep">·</span>
+              <span class="foot-sep">Â·</span>
               <span>F6 CRT</span>
             </div>
           </div>
 
-          <!-- ── CARTRIDGE SELECT (ESTANTE 3D DE CARTUCHOS) ── -->
+          <!-- â”€â”€ CARTRIDGE SELECT (ESTANTE 3D DE CARTUCHOS) â”€â”€ -->
           <div id="view-cartridge" class="view" role="main">
             <div class="view-header">
-              <button class="back-btn" id="back-from-cartridge">◀ ESC</button>
+              <button class="back-btn" id="back-from-cartridge">â—€ ESC</button>
               <h1 class="view-title">ESTANTE DE CARTUCHOS 3D</h1>
               <span class="cart-count-badge" id="cart-count">4 CARTUCHOS</span>
             </div>
 
             <div id="cartridge-stage">
-              <!-- Estante com rotação e projeção 3D dos cartuchos -->
+              <!-- Estante com rotaÃ§Ã£o e projeÃ§Ã£o 3D dos cartuchos -->
               <div id="cartridge-rack-container">
-                <button class="rack-nav-btn" id="rack-prev" aria-label="Cartucho anterior">◀</button>
+                <button class="rack-nav-btn" id="rack-prev" aria-label="Cartucho anterior">â—€</button>
                 <div id="cartridge-rack" role="list"></div>
-                <button class="rack-nav-btn" id="rack-next" aria-label="Próximo cartucho">▶</button>
+                <button class="rack-nav-btn" id="rack-next" aria-label="PrÃ³ximo cartucho">â–¶</button>
               </div>
 
-              <!-- Painel de especificações e detalhes do cartucho selecionado -->
+              <!-- Painel de especificaÃ§Ãµes e detalhes do cartucho selecionado -->
               <div id="cartridge-details-panel">
                 <div class="cart-details-header">
                   <div id="cart-details-title">STAR BLASTER</div>
                   <div id="cart-details-badge">C8-SEAL OF QUALITY</div>
                 </div>
                 <div class="cart-details-body">
-                  <p id="cart-details-desc">Carregando informações do cartucho...</p>
+                  <p id="cart-details-desc">Carregando informaÃ§Ãµes do cartucho...</p>
                   <div class="cart-specs-grid">
                     <div class="spec-tag">DEV: <span id="cart-spec-dev">-</span></div>
-                    <div class="spec-tag">GÊNERO: <span id="cart-spec-genre">-</span></div>
+                    <div class="spec-tag">GÃŠNERO: <span id="cart-spec-genre">-</span></div>
                     <div class="spec-tag">ANO: <span id="cart-spec-year">-</span></div>
-                    <div class="spec-tag">VERSÃO: <span id="cart-spec-ver">-</span></div>
+                    <div class="spec-tag">VERSÃƒO: <span id="cart-spec-ver">-</span></div>
                   </div>
                 </div>
                 <button id="btn-insert-play" class="c8-retro-btn">
-                  <span class="btn-icon">📼</span> INSERIR CARTUCHO E JOGAR
+                  <span class="btn-icon">ðŸ“¼</span> INSERIR CARTUCHO E JOGAR
                 </button>
               </div>
             </div>
@@ -159,14 +167,14 @@
             </div>
           </div>
 
-          <!-- ── APLICATIVOS DO CONSOLE v1.2 ── -->
+          <!-- â”€â”€ APLICATIVOS DO CONSOLE v1.3 â”€â”€ -->
           <div id="view-apps" class="view" role="main">
             <div class="view-header">
-              <button class="back-btn" id="back-from-apps">◀ ESC</button>
-              <h1 class="view-title">APLICATIVOS DO CONSOLE v1.2</h1>
+              <button class="back-btn" id="back-from-apps">â—€ ESC</button>
+              <h1 class="view-title">APLICATIVOS DO CONSOLE v1.3</h1>
               <div class="apps-tabs">
-                <button class="app-tab-btn active" id="tab-synth" data-app="synth">🎵 C8-SOUNDWAVE</button>
-                <button class="app-tab-btn" id="tab-pixel" data-app="pixel">🎨 PIXEL STUDIO 8</button>
+                <button class="app-tab-btn active" id="tab-synth" data-app="synth">ðŸŽµ C8-SOUNDWAVE</button>
+                <button class="app-tab-btn" id="tab-pixel" data-app="pixel">ðŸŽ¨ PIXEL STUDIO 8</button>
               </div>
             </div>
 
@@ -192,11 +200,11 @@
                   <div class="synth-sfx-grid">
                     <span class="sfx-header-label">PRESETS SFX ARCADE:</span>
                     <div class="sfx-buttons">
-                      <button class="sfx-btn" data-sfx="jump">🏃 PULO</button>
-                      <button class="sfx-btn" data-sfx="laser">🔫 LASER</button>
-                      <button class="sfx-btn" data-sfx="coin">🪙 MOEDA</button>
-                      <button class="sfx-btn" data-sfx="explosion">💥 EXPLOSÃO</button>
-                      <button class="sfx-btn" data-sfx="powerup">⭐ POWERUP</button>
+                      <button class="sfx-btn" data-sfx="jump">ðŸƒ PULO</button>
+                      <button class="sfx-btn" data-sfx="laser">ðŸ”« LASER</button>
+                      <button class="sfx-btn" data-sfx="coin">ðŸª™ MOEDA</button>
+                      <button class="sfx-btn" data-sfx="explosion">ðŸ’¥ EXPLOSÃƒO</button>
+                      <button class="sfx-btn" data-sfx="powerup">â­ POWERUP</button>
                     </div>
                   </div>
 
@@ -225,9 +233,9 @@
                   <div class="pixel-sidebar">
                     <div class="pixel-section-title">FERRAMENTAS</div>
                     <div class="pixel-tools">
-                      <button class="tool-btn active" id="tool-pencil">✏️ PINCEL</button>
-                      <button class="tool-btn" id="tool-eraser">🧹 BORRACHA</button>
-                      <button class="tool-btn danger" id="tool-clear">🗑️ LIMPAR</button>
+                      <button class="tool-btn active" id="tool-pencil">âœï¸ PINCEL</button>
+                      <button class="tool-btn" id="tool-eraser">ðŸ§¹ BORRACHA</button>
+                      <button class="tool-btn danger" id="tool-clear">ðŸ—‘ï¸ LIMPAR</button>
                     </div>
 
                     <div class="pixel-section-title">PALETA RETRO</div>
@@ -252,38 +260,141 @@
             </div>
           </div>
 
-          <!-- ── BIBLIOTECA ── -->
+          <!-- â”€â”€ SELEÃ‡ÃƒO DE PERFIL (BOOT) â”€â”€ -->
+          <div id="view-profile-select" class="view" role="main">
+            <div class="profile-screen">
+              <div class="profile-screen-title">QUEM ESTÃ JOGANDO AGORA?</div>
+              <div id="profile-select-list" class="profile-list"></div>
+              <button type="button" id="profile-select-create" class="c8-retro-btn profile-create-btn" style="display:none">
+                + CRIAR PERFIL
+              </button>
+              <div id="profile-select-empty" class="profile-empty-msg">
+                <p>Nenhum perfil encontrado.</p>
+                <button type="button" id="profile-select-create-first" class="c8-retro-btn">+ CRIAR PRIMEIRO PERFIL</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- â”€â”€ GERENCIAR PERFIS (MENU) â”€â”€ -->
+          <div id="view-profiles" class="view" role="main">
+            <div class="view-header">
+              <button class="back-btn" id="back-from-profiles">â—€ ESC</button>
+              <h1 class="view-title">PERFIS</h1>
+              <span class="cart-count-badge" id="profiles-count-badge">0/5</span>
+            </div>
+            <div class="profiles-manager">
+              <div id="profiles-manager-list" class="profile-list profile-list-compact"></div>
+              <div class="profiles-manager-actions">
+                <button type="button" id="profiles-btn-create" class="c8-retro-btn">+ NOVO PERFIL</button>
+                <button type="button" id="profiles-btn-edit" class="c8-retro-btn profile-btn-secondary">âœŽ EDITAR PERFIL</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- â”€â”€ OVERLAY CRIAR / EDITAR PERFIL â”€â”€ -->
+          <div id="profile-editor-overlay" class="profile-overlay" aria-hidden="true">
+            <div class="profile-editor-panel">
+              <div class="profile-editor-header">
+                <span id="profile-editor-title">CRIAR PERFIL</span>
+                <button type="button" id="profile-editor-close" class="profile-close-btn" aria-label="Fechar">âœ•</button>
+              </div>
+
+              <div class="profile-field">
+                <label class="profile-label">NOME DO PERFIL</label>
+                <div class="profile-name-row">
+                  <div id="profile-name-display" class="profile-name-display">
+                    <span id="profile-name-text"></span><span class="cursor profile-name-cursor">â–ˆ</span>
+                  </div>
+                  <input type="text" id="profile-name-input" class="profile-name-input" maxlength="24" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Nome do perfil">
+                </div>
+              </div>
+
+              <div class="profile-field">
+                <label class="profile-label">MODO DE JOGO</label>
+                <div class="profile-mode-grid">
+                  <div class="profile-mode-card selected" data-mode="sandbox" id="mode-sandbox" role="button" tabindex="0">
+                    <span class="profile-mode-name">SANDBOX</span>
+                    <button type="button" class="profile-info-btn" data-info="sandbox" aria-label="Info Sandbox">i</button>
+                  </div>
+                  <div class="profile-mode-card" data-mode="hardcore" id="mode-hardcore" role="button" tabindex="0">
+                    <span class="profile-mode-name">HARDCORE</span>
+                    <button type="button" class="profile-info-btn" data-info="hardcore" aria-label="Info Hardcore">i</button>
+                  </div>
+                </div>
+              </div>
+
+              <div id="profile-mode-info" class="profile-mode-info" style="display:none"></div>
+
+              <div class="profile-editor-footer">
+                <button type="button" id="profile-editor-save" class="c8-retro-btn">SALVAR</button>
+                <button type="button" id="profile-editor-delete" class="c8-retro-btn profile-btn-danger" style="display:none">EXCLUIR</button>
+              </div>
+
+              <!-- Teclado virtual mobile -->
+              <div id="profile-mobile-keyboard" class="profile-mobile-kb" aria-hidden="true">
+                <div class="profile-kb-row">
+                  <button type="button" class="profile-kb-key" data-key="Q">Q</button>
+                  <button type="button" class="profile-kb-key" data-key="W">W</button>
+                  <button type="button" class="profile-kb-key" data-key="E">E</button>
+                  <button type="button" class="profile-kb-key" data-key="R">R</button>
+                  <button type="button" class="profile-kb-key" data-key="T">T</button>
+                  <button type="button" class="profile-kb-key" data-key="Y">Y</button>
+                  <button type="button" class="profile-kb-key" data-key="U">U</button>
+                  <button type="button" class="profile-kb-key" data-key="I">I</button>
+                  <button type="button" class="profile-kb-key" data-key="O">O</button>
+                  <button type="button" class="profile-kb-key" data-key="P">P</button>
+                </div>
+                <div class="profile-kb-row">
+                  <button type="button" class="profile-kb-key" data-key="A">A</button>
+                  <button type="button" class="profile-kb-key" data-key="S">S</button>
+                  <button type="button" class="profile-kb-key" data-key="D">D</button>
+                  <button type="button" class="profile-kb-key" data-key="F">F</button>
+                  <button type="button" class="profile-kb-key" data-key="G">G</button>
+                  <button type="button" class="profile-kb-key" data-key="H">H</button>
+                  <button type="button" class="profile-kb-key" data-key="J">J</button>
+                  <button type="button" class="profile-kb-key" data-key="K">K</button>
+                  <button type="button" class="profile-kb-key" data-key="L">L</button>
+                </div>
+                <div class="profile-kb-row">
+                  <button type="button" class="profile-kb-key profile-kb-wide" data-key=" ">ESPAÃ‡O</button>
+                  <button type="button" class="profile-kb-key profile-kb-back" data-key="Backspace">âŒ«</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- â”€â”€ BIBLIOTECA â”€â”€ -->
           <div id="view-library" class="view" role="main">
             <div class="view-header">
-              <button class="back-btn" id="back-from-library">◀ ESC</button>
+              <button class="back-btn" id="back-from-library">â—€ ESC</button>
               <h1 class="view-title">BIBLIOTECA DE CARTUCHOS</h1>
             </div>
             <div id="library-grid"></div>
           </div>
 
-          <!-- ── CONTROLE ── -->
+          <!-- â”€â”€ CONTROLE â”€â”€ -->
           <div id="view-controller" class="view" role="main">
             <div class="view-header">
-              <button class="back-btn" id="back-from-controller">◀ ESC</button>
+              <button class="back-btn" id="back-from-controller">â—€ ESC</button>
               <h1 class="view-title">TESTE DE CONTROLE</h1>
             </div>
             <div id="controller-display">
               <div id="no-gamepad-msg">
-                <div class="no-gp-icon">🎮</div>
-                <p>Conecte um gamepad e pressione qualquer botão</p>
+                <div class="no-gp-icon">ðŸŽ®</div>
+                <p>Conecte um gamepad e pressione qualquer botÃ£o</p>
                 <p class="dim">ou use o teclado para navegar</p>
               </div>
               <div id="gamepad-visual">
                 <div class="gp-layout">
                   <div class="gp-section">
                     <div class="gp-dpad">
-                      <div class="dpad-btn" id="gp-up">↑</div>
+                      <div class="dpad-btn" id="gp-up">â†‘</div>
                       <div class="dpad-row">
-                        <div class="dpad-btn" id="gp-left">←</div>
+                        <div class="dpad-btn" id="gp-left">â†</div>
                         <div class="dpad-center"></div>
-                        <div class="dpad-btn" id="gp-right">→</div>
+                        <div class="dpad-btn" id="gp-right">â†’</div>
                       </div>
-                      <div class="dpad-btn" id="gp-down">↓</div>
+                      <div class="dpad-btn" id="gp-down">â†“</div>
                     </div>
                     <div class="gp-label">D-PAD</div>
                   </div>
@@ -302,7 +413,7 @@
                       </div>
                       <div class="gp-btn btn-a" id="gp-a">A</div>
                     </div>
-                    <div class="gp-label">BOTÕES</div>
+                    <div class="gp-label">BOTÃ•ES</div>
                   </div>
                 </div>
                 <div class="gp-shoulders">
@@ -315,11 +426,11 @@
             </div>
           </div>
 
-          <!-- ── OPÇÕES ── -->
+          <!-- â”€â”€ OPÃ‡Ã•ES â”€â”€ -->
           <div id="view-options" class="view" role="main">
             <div class="view-header">
-              <button class="back-btn" id="back-from-options">◀ ESC</button>
-              <h1 class="view-title">OPÇÕES DE VÍDEO & SISTEMA</h1>
+              <button class="back-btn" id="back-from-options">â—€ ESC</button>
+              <h1 class="view-title">OPÃ‡Ã•ES DE VÃDEO & SISTEMA</h1>
             </div>
             <div id="options-list">
               <div class="option-item" data-option="crt" id="opt-crt">
@@ -348,8 +459,8 @@
               </div>
               <div class="option-item" data-option="noise" id="opt-noise">
                 <div class="option-left">
-                  <span class="option-label">RUÍDO DE TELA</span>
-                  <span class="option-hint-text">Granulado analógico</span>
+                  <span class="option-label">RUÃDO DE TELA</span>
+                  <span class="option-hint-text">Granulado analÃ³gico</span>
                 </div>
                 <div class="option-right">
                   <div class="toggle-switch active" id="toggle-noise" role="switch" aria-checked="true">
@@ -368,51 +479,70 @@
                   <span class="option-value" id="brightness-value">100%</span>
                 </div>
               </div>
+              <div class="option-item" data-option="export-profile" id="opt-export-profile">
+                <div class="option-left">
+                  <span class="option-label">EXPORTAR PERFIL</span>
+                  <span class="option-hint-text">Baixar ZIP do perfil ativo</span>
+                </div>
+                <div class="option-right">
+                  <span class="option-action-badge">ZIP â†“</span>
+                </div>
+              </div>
+              <div class="option-item" data-option="import-profile" id="opt-import-profile">
+                <div class="option-left">
+                  <span class="option-label">IMPORTAR PERFIL</span>
+                  <span class="option-hint-text">Restaurar perfil de um ZIP</span>
+                </div>
+                <div class="option-right">
+                  <span class="option-action-badge">ZIP â†‘</span>
+                </div>
+              </div>
+              <input type="file" id="profile-import-file" accept=".zip,application/zip" hidden>
               <div class="option-shortcut">
-                <span class="key-badge">F6</span> Toggle rápido do filtro CRT
+                <span class="key-badge">F6</span> Toggle rÃ¡pido do filtro CRT
               </div>
             </div>
           </div>
 
-          <!-- ── SOBRE ── -->
+          <!-- â”€â”€ SOBRE â”€â”€ -->
           <div id="view-about" class="view" role="main">
             <div class="view-header">
-              <button class="back-btn" id="back-from-about">◀ ESC</button>
+              <button class="back-btn" id="back-from-about">â—€ ESC</button>
               <h1 class="view-title">SOBRE O CONSOLE</h1>
             </div>
             <div id="about-content">
               <div class="about-logo">CARTRIDGE<span>-8</span></div>
-              <div class="about-version">Sistema Operacional v1.2 · 2026</div>
-              <p class="about-tagline">Um console fictício retro com estante de cartuchos 3D e aplicativos integrados.<br>Desenvolvido com HTML, CSS e JS puro.</p>
+              <div class="about-version">Sistema Operacional v1.3 Â· 2026</div>
+              <p class="about-tagline">Um console fictÃ­cio retro com estante de cartuchos 3D e aplicativos integrados.<br>Desenvolvido com HTML, CSS e JS puro.</p>
               <div class="about-specs">
-                <div class="spec-row"><span>SISTEMA</span><span>Cartridge-8 OS v1.2</span></div>
+                <div class="spec-row"><span>SISTEMA</span><span>Cartridge-8 OS v1.3</span></div>
                 <div class="spec-row"><span>CPU</span><span>C8-6502 @ 1.7 MHz</span></div>
-                <div class="spec-row"><span>RAM / VRAM</span><span>64 KB RAM · 8 KB VRAM</span></div>
-                <div class="spec-row"><span>MÍDIA</span><span>Cartuchos 3D Magnéticos</span></div>
-                <div class="spec-row"><span>CORES</span><span>32 simultâneas com CRT</span></div>
-                <div class="spec-row"><span>ÁUDIO</span><span>Sintetizador Chiptune (Web Audio)</span></div>
-                <div class="spec-row"><span>ENTRADA</span><span>Teclado · Gamepad · Touch</span></div>
+                <div class="spec-row"><span>RAM / VRAM</span><span>64 KB RAM Â· 8 KB VRAM</span></div>
+                <div class="spec-row"><span>MÃDIA</span><span>Cartuchos 3D MagnÃ©ticos</span></div>
+                <div class="spec-row"><span>CORES</span><span>32 simultÃ¢neas com CRT</span></div>
+                <div class="spec-row"><span>ÃUDIO</span><span>Sintetizador Chiptune (Web Audio)</span></div>
+                <div class="spec-row"><span>ENTRADA</span><span>Teclado Â· Gamepad Â· Touch</span></div>
               </div>
               <div class="about-credits">
-                <p>© 2026 asafgameryDEV</p>
-                <p class="dim">Feito com ❤ e muita nostalgia retro</p>
+                <p>Â© 2026 asafgameryDEV</p>
+                <p class="dim">Feito com â¤ e muita nostalgia retro</p>
               </div>
             </div>
           </div>
 
-          <!-- ── GAME IFRAME ── -->
+          <!-- â”€â”€ GAME IFRAME â”€â”€ -->
           <iframe id="game-frame" class="view" src="about:blank"
                   sandbox="allow-scripts allow-same-origin"
                   title="Jogo ativo"></iframe>
 
-          <!-- ── EFEITOS CRT (Ficam DENTRO do #screen por cima de tudo) ── -->
+          <!-- â”€â”€ EFEITOS CRT (Ficam DENTRO do #screen por cima de tudo) â”€â”€ -->
           <canvas id="crt-noise" aria-hidden="true"></canvas>
           <div id="crt-scanlines" aria-hidden="true"></div>
           <div id="crt-vignette" aria-hidden="true"></div>
           <div id="crt-glare" aria-hidden="true"></div>
 
-          <!-- ── MOUSE VIRTUAL PARA GAMEPAD ── -->
-          <div id="virtual-cursor" aria-hidden="true">🖯</div>
+          <!-- â”€â”€ MOUSE VIRTUAL PARA GAMEPAD â”€â”€ -->
+          <div id="virtual-cursor" aria-hidden="true">ðŸ–¯</div>
 
         </div><!-- #screen -->
       </div><!-- #screen-wrapper -->
@@ -447,13 +577,13 @@
     <!-- Controles virtuais mobile -->
     <div id="mobile-controls" aria-label="Controles virtuais">
       <div id="mobile-dpad">
-        <button class="dpad-virtual" id="m-up" aria-label="Cima">▲</button>
+        <button class="dpad-virtual" id="m-up" aria-label="Cima">â–²</button>
         <div class="dpad-middle">
-          <button class="dpad-virtual" id="m-left" aria-label="Esquerda">◀</button>
+          <button class="dpad-virtual" id="m-left" aria-label="Esquerda">â—€</button>
           <div class="dpad-center-piece"></div>
-          <button class="dpad-virtual" id="m-right" aria-label="Direita">▶</button>
+          <button class="dpad-virtual" id="m-right" aria-label="Direita">â–¶</button>
         </div>
-        <button class="dpad-virtual" id="m-down" aria-label="Baixo">▼</button>
+        <button class="dpad-virtual" id="m-down" aria-label="Baixo">â–¼</button>
       </div>
       <div id="mobile-center">
         <button class="mobile-btn-sm" id="m-select">SEL</button>
@@ -471,6 +601,9 @@
 
   </div><!-- #app -->
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="profiles-db.js"></script>
   <script src="main.js"></script>
 </body>
 </html>
+

@@ -1,0 +1,7 @@
+name=SUPER AVENTUREIRO 2: AGENT EDITION
+dev=asafgamery
+version=1.0
+desc=Roubaram seu diamante! Vire agente secreto e derrote a mafia em 10 missoes. Atire, dash, e pulo duplo na fase 6+. 2 bosses.
+color=#1a1a2e
+genre=Plataforma / Acao
+year=2026

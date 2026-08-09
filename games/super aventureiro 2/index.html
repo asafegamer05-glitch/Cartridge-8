@@ -59,7 +59,7 @@
             <div id="livesDisplay">❤️ Vidas: 3</div>
         </div>
         <div id="godmodeDisplay" style="display:none;" class="godmode-indicator">👑 MODO INVENCÍVEL ATIVADO</div>
-        <div class="controls">🎮 Gamepad: D-Pad/analógico mover | A=pular | X=dash | R+L=Modo Invencível | ⌨️ Teclado: Setas + Espaço + Shift</div>
+        <div class="controls">🎮 Gamepad: D-Pad/analógico mover | A=pular | X=dash | LB+RB=Modo Invencível | ⌨️ Teclado: Setas + Espaço + Shift + R+L</div>
     </div>
 
     <script>
@@ -106,7 +106,7 @@
         
         const keys = {};
         let gamepadConnected = false;
-        let rlPressed = false; // Para evitar ativar/desativar god mode várias vezes
+        let godComboWasActive = false; // Edge detection para toggle R+L / LB+RB
         
         function getEnemyColors(level) {
             switch(level) {
@@ -315,17 +315,6 @@
                 e.preventDefault();
             }
             
-            // God mode com teclado: pressionar R + L
-            if (keys['KeyR'] && keys['KeyL']) {
-                if (!rlPressed) {
-                    godMode = !godMode;
-                    rlPressed = true;
-                    updateDisplay();
-                    console.log('Modo invencível:', godMode ? 'ATIVADO' : 'DESATIVADO');
-                }
-            } else {
-                rlPressed = false;
-            }
         });
         
         window.addEventListener('keyup', (e) => {
@@ -333,31 +322,34 @@
         });
         
         function getGamepadInput() {
-            if (!gamepadConnected) return null;
             const gamepads = navigator.getGamepads();
             if (!gamepads) return null;
-            for (let gamepad of gamepads) {
-                if (gamepad && gamepad.connected) return gamepad;
+            for (const gamepad of gamepads) {
+                if (gamepad && gamepad.connected) {
+                    gamepadConnected = true;
+                    return gamepad;
+                }
             }
             return null;
         }
+
+        function handleGodMode(gamepad) {
+            const kbActive = !!(keys['KeyR'] && keys['KeyL']);
+            const gpActive = !!(gamepad && gamepad.buttons[4]?.pressed && gamepad.buttons[5]?.pressed);
+            const comboActive = kbActive || gpActive;
+            if (comboActive && !godComboWasActive) {
+                godMode = !godMode;
+                updateDisplay();
+            }
+            godComboWasActive = comboActive;
+        }
         
         function update() {
+            const gamepad = getGamepadInput();
+            handleGodMode(gamepad);
+
             // MENU
             if (gameState === 'menu') {
-                const gamepad = getGamepadInput();
-                
-                // God mode no menu também
-                if (gamepad && gamepad.buttons[4]?.pressed && gamepad.buttons[6]?.pressed) {
-                    if (!rlPressed) {
-                        godMode = !godMode;
-                        rlPressed = true;
-                        updateDisplay();
-                    }
-                } else {
-                    rlPressed = false;
-                }
-                
                 if (keys['Enter'] || keys['Space'] || (gamepad && gamepad.buttons[0]?.pressed)) {
                     gameState = 'playing';
                     currentLevel = 1;
@@ -370,19 +362,6 @@
             
             // GAMEOVER / WIN / BOSS DEFEATED
             if (gameState === 'gameover' || gameState === 'win' || gameState === 'bossDefeated') {
-                const gamepad = getGamepadInput();
-                
-                // God mode
-                if (gamepad && gamepad.buttons[4]?.pressed && gamepad.buttons[6]?.pressed) {
-                    if (!rlPressed) {
-                        godMode = !godMode;
-                        rlPressed = true;
-                        updateDisplay();
-                    }
-                } else {
-                    rlPressed = false;
-                }
-                
                 if (keys['Enter'] || (gamepad && gamepad.buttons[0]?.pressed)) {
                     if (gameState === 'gameover') {
                         if (godMode) {
@@ -410,23 +389,10 @@
                             lives = 3;
                             loadLevel(1);
                             gameState = 'playing';
-                            alert('🎉 PARABÉNS! Você completou todas as 5 fases e derrotou o Boss Final! 🎉\nVocê é o Super Aventureiro Supremo!');
                         }
                     }
                 }
                 return;
-            }
-            
-            // Verificar god mode com R+L (teclado já foi verificado no keydown)
-            const gamepad = getGamepadInput();
-            if (gamepad && gamepad.buttons[4]?.pressed && gamepad.buttons[6]?.pressed) {
-                if (!rlPressed) {
-                    godMode = !godMode;
-                    rlPressed = true;
-                    updateDisplay();
-                }
-            } else if (!keys['KeyR'] || !keys['KeyL']) {
-                rlPressed = false;
             }
             
             if (player.invincible > 0) player.invincible--;
@@ -865,7 +831,7 @@
                 ctx.fillText('Setas/WASD: Mover | Espaço: Pular | Shift/X: Dash', canvas.width / 2, 240);
                 ctx.fillText('Pular em inimigos: Derrotar (knockback melhorado!)', canvas.width / 2, 270);
                 ctx.fillText('🎮 Gamepad: A=Pular | X=Dash | D-Pad=Mover', canvas.width / 2, 300);
-                ctx.fillText('👑 Segredo: R+L (teclado) ou RB+LB (gamepad) = Modo Invencível', canvas.width / 2, 330);
+                ctx.fillText('👑 Segredo: R+L (teclado) ou LB+RB (gamepad) = Modo Invencível', canvas.width / 2, 330);
                 
                 ctx.fillStyle = '#2ecc71';
                 ctx.font = '30px Arial';

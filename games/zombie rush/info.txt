@@ -1,0 +1,7 @@
+name=ZOMBIE RUSH
+dev=asafgamery
+version=1.0
+desc=Sobreviva na cabana da floresta contra hordas de zumbis! 3 modos de jogo: Normal (3 Dias), Dificil (10 Dias) e Infinito.
+color=#2d4a27
+genre=Sobrevivencia Top-Down
+year=2026

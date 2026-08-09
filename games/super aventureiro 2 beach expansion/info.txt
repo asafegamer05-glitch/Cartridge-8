@@ -1,0 +1,7 @@
+name=SUPER AVENTUREIRO 2: BEACH EXPANSION
+dev=asafgamery
+version=1.0
+desc=DLC de praia com 10 fases totais (5 originais + 5 novas) e boss Rei Caranguejo.
+color=#48CAE4
+genre=Plataforma / DLC
+year=2026

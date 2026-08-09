@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Aventureiro 2: Beach Expansion</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        canvas { border: 2px solid #333; image-rendering: pixelated; }
+        #info { color: white; margin-top: 10px; text-align: center; }
+        .controls { color: #aaa; font-size: 14px; margin-top: 5px; }
+        .hud { display: flex; gap: 20px; justify-content: center; }
+        .godmode-indicator { color: #f1c40f; font-weight: bold; animation: pulse 0.5s infinite alternate; }
+        @keyframes pulse { from { opacity: 0.5; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="info">
+        <div id="levelDisplay">MENU</div>
+        <div class="hud">
+            <div id="scoreDisplay">⭐ Moedas: 0 / 8</div>
+            <div id="livesDisplay">❤️ Vidas: 3</div>
+        </div>
+        <div id="godmodeDisplay" style="display:none;" class="godmode-indicator">👑 MODO INVENCÍVEL ATIVADO</div>
+        <div class="controls">🎮 Gamepad: D-Pad/analógico mover | A=pular | X=dash | LB+RB=Modo Invencível | ⌨️ Teclado: Setas + Espaço + Shift + R+L</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = 800;
+        canvas.height = 400;
+
+        const TOTAL_LEVELS = 10;
+        let gameState = 'menu';
+        let menuSelection = 0;
+        const menuOptions = ['JOGAR', 'CONTROLES'];
+        let currentLevel = 1;
+        let totalCoins = 0;
+        const coinsPerLevel = 8;
+        let lives = 3;
+        let cameraX = 0;
+        const levelWidth = 2400;
+        let godMode = false;
+
+        const player = {
+            x: 50, y: 300, width: 30, height: 40,
+            vx: 0, vy: 0, speed: 5, jumpForce: -11, gravity: 0.6,
+            grounded: false, color: '#e74c3c', facing: 1,
+            invincible: 0, dashing: false, dashCooldown: 0, dashSpeed: 12, dashDuration: 0
+        };
+
+        let platforms = [];
+        let enemies = [];
+        let coins = [];
+        let boss = null;
+        let flag = { x: 0, y: 0, width: 20, height: 60 };
+
+        const keys = {};
+        let gamepadConnected = false;
+        let godComboWasActive = false;
+        let menuNavCooldown = 0;
+        let menuConfirmCooldown = 0;
+
+        function isBeachLevel(level) { return level >= 6; }
+
+        function getPlatformColors(level) {
+            if (isBeachLevel(level)) return { ground: '#C9952B', plat: '#E8C874' };
+            return { ground: '#8B4513', plat: '#654321' };
+        }
+
+        function getEnemyColors(level) {
+            if (level >= 6 && level <= 9) {
+                const beach = [
+                    { walker: '#E76F51', flyer: '#457B9D' },
+                    { walker: '#F4A261', flyer: '#2A9D8F' },
+                    { walker: '#D62828', flyer: '#023E8A' },
+                    { walker: '#BC6C25', flyer: '#0077B6' }
+                ];
+                return beach[level - 6];
+            }
+            if (level === 10) return { walker: '#E76F51', flyer: '#0077B6' };
+            switch (level) {
+                case 1: return { walker: '#27ae60', flyer: '#e67e22' };
+                case 2: return { walker: '#2980b9', flyer: '#f39c12' };
+                case 3: return { walker: '#8e44ad', flyer: '#e74c3c' };
+                case 4: return { walker: '#c0392b', flyer: '#e74c3c' };
+                case 5: return { walker: '#2c3e50', flyer: '#c0392b' };
+                default: return { walker: '#27ae60', flyer: '#e67e22' };
+            }
+        }
+
+        function loadLevel(level) {
+            platforms = [];
+            enemies = [];
+            coins = [];
+            boss = null;
+
+            const pc = getPlatformColors(level);
+            platforms.push({ x: 0, y: 370, width: levelWidth, height: 30, color: pc.ground });
+            const colors = getEnemyColors(level);
+
+            switch (level) {
+                case 1:
+                    platforms.push({ x: 300, y: 310, width: 120, height: 15, color: pc.plat });
+                    platforms.push({ x: 500, y: 260, width: 100, height: 15, color: pc.plat });
+                    platforms.push({ x: 700, y: 300, width: 130, height: 15, color: pc.plat });
+                    platforms.push({ x: 950, y: 240, width: 100, height: 15, color: pc.plat });
+                    platforms.push({ x: 1150, y: 290, width: 120, height: 15, color: pc.plat });
+                    platforms.push({ x: 1400, y: 330, width: 100, height: 15, color: pc.plat });
+                    platforms.push({ x: 1650, y: 270, width: 120, height: 15, color: pc.plat });
+                    platforms.push({ x: 1900, y: 310, width: 100, height: 15, color: pc.plat });
+                    platforms.push({ x: 2100, y: 250, width: 130, height: 15, color: pc.plat });
+                    enemies.push({ x: 350, y: 340, width: 30, height: 30, vx: 1.5, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 600, y: 340, width: 30, height: 30, vx: -1.5, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 450, y: 200, width: 30, height: 30, vx: 1, vy: 0, amplitude: 50, baseY: 200, color: colors.flyer, type: 'flyer' });
+                    coins.push({ x: 330, y: 280 }, { x: 530, y: 230 }, { x: 730, y: 270 }, { x: 980, y: 210 });
+                    coins.push({ x: 1180, y: 260 }, { x: 1430, y: 300 }, { x: 1930, y: 280 }, { x: 2130, y: 220 });
+                    flag = { x: 2300, y: 310, width: 20, height: 60 };
+                    break;
+
+                case 2:
+                    platforms.push({ x: 200, y: 330, width: 100, height: 15, color: pc.plat });
+                    platforms.push({ x: 400, y: 280, width: 100, height: 15, color: pc.plat });
+                    platforms.push({ x: 600, y: 230, width: 100, height: 15, color: pc.plat });
+                    platforms.push({ x: 850, y: 300, width: 100, height: 15, color: pc.plat });
+                    platforms.push({ x: 1050, y: 250, width: 100, height: 15, color: pc.plat });
+                    platforms.push({ x: 1300, y: 320, width: 100, height: 15, color: pc.plat });
+                    platforms.push({ x: 1550, y: 270, width: 100, height: 15, color: pc.plat });
+                    platforms.push({ x: 1800, y: 220, width: 100, height: 15, color: pc.plat });
+                    platforms.push({ x: 2050, y: 290, width: 100, height: 15, color: pc.plat });
+                    enemies.push({ x: 300, y: 340, width: 30, height: 30, vx: 2, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 700, y: 340, width: 30, height: 30, vx: -2.2, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 500, y: 180, width: 30, height: 30, vx: 1.5, vy: 0, amplitude: 70, baseY: 180, color: colors.flyer, type: 'flyer' });
+                    enemies.push({ x: 1400, y: 190, width: 30, height: 30, vx: -1.8, vy: 0, amplitude: 65, baseY: 190, color: colors.flyer, type: 'flyer' });
+                    coins.push({ x: 230, y: 300 }, { x: 430, y: 250 }, { x: 630, y: 200 }, { x: 880, y: 270 });
+                    coins.push({ x: 1080, y: 220 }, { x: 1580, y: 240 }, { x: 1830, y: 190 }, { x: 2080, y: 260 });
+                    flag = { x: 2300, y: 310, width: 20, height: 60 };
+                    break;
+
+                case 3:
+                    platforms.push({ x: 250, y: 320, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 450, y: 270, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 650, y: 310, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 850, y: 240, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 1050, y: 290, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 1250, y: 330, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 1450, y: 260, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 1650, y: 300, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 1850, y: 230, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 2050, y: 280, width: 80, height: 15, color: pc.plat });
+                    enemies.push({ x: 350, y: 340, width: 30, height: 30, vx: 2.2, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 750, y: 340, width: 30, height: 30, vx: -2.5, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 1150, y: 340, width: 30, height: 30, vx: 2.3, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 350, y: 200, width: 30, height: 30, vx: 1.7, vy: 0, amplitude: 60, baseY: 200, color: colors.flyer, type: 'flyer' });
+                    enemies.push({ x: 1350, y: 190, width: 30, height: 30, vx: -1.9, vy: 0, amplitude: 65, baseY: 190, color: colors.flyer, type: 'flyer' });
+                    coins.push({ x: 280, y: 290 }, { x: 480, y: 240 }, { x: 680, y: 280 }, { x: 880, y: 210 });
+                    coins.push({ x: 1080, y: 260 }, { x: 1480, y: 230 }, { x: 1880, y: 200 }, { x: 2080, y: 250 });
+                    flag = { x: 2300, y: 310, width: 20, height: 60 };
+                    break;
+
+                case 4:
+                    platforms.push({ x: 150, y: 340, width: 90, height: 15, color: pc.plat });
+                    platforms.push({ x: 350, y: 290, width: 90, height: 15, color: pc.plat });
+                    platforms.push({ x: 550, y: 240, width: 90, height: 15, color: pc.plat });
+                    platforms.push({ x: 750, y: 300, width: 90, height: 15, color: pc.plat });
+                    platforms.push({ x: 950, y: 250, width: 90, height: 15, color: pc.plat });
+                    platforms.push({ x: 1150, y: 200, width: 90, height: 15, color: pc.plat });
+                    platforms.push({ x: 1350, y: 270, width: 90, height: 15, color: pc.plat });
+                    platforms.push({ x: 1550, y: 320, width: 90, height: 15, color: pc.plat });
+                    platforms.push({ x: 1750, y: 260, width: 90, height: 15, color: pc.plat });
+                    platforms.push({ x: 1950, y: 210, width: 90, height: 15, color: pc.plat });
+                    platforms.push({ x: 2150, y: 280, width: 90, height: 15, color: pc.plat });
+                    enemies.push({ x: 250, y: 340, width: 30, height: 30, vx: 2.5, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 800, y: 340, width: 30, height: 30, vx: -2.8, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 1400, y: 340, width: 30, height: 30, vx: 3, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 400, y: 190, width: 30, height: 30, vx: 2, vy: 0, amplitude: 80, baseY: 190, color: colors.flyer, type: 'flyer' });
+                    enemies.push({ x: 1300, y: 180, width: 30, height: 30, vx: -2.2, vy: 0, amplitude: 75, baseY: 180, color: colors.flyer, type: 'flyer' });
+                    enemies.push({ x: 2100, y: 190, width: 30, height: 30, vx: 2.1, vy: 0, amplitude: 85, baseY: 190, color: colors.flyer, type: 'flyer' });
+                    coins.push({ x: 180, y: 310 }, { x: 380, y: 260 }, { x: 580, y: 210 }, { x: 780, y: 270 });
+                    coins.push({ x: 980, y: 220 }, { x: 1380, y: 240 }, { x: 1780, y: 230 }, { x: 2180, y: 250 });
+                    flag = { x: 2300, y: 310, width: 20, height: 60 };
+                    break;
+
+                case 5:
+                    platforms.push({ x: 100, y: 350, width: 70, height: 15, color: pc.plat });
+                    platforms.push({ x: 300, y: 300, width: 70, height: 15, color: pc.plat });
+                    platforms.push({ x: 500, y: 250, width: 70, height: 15, color: pc.plat });
+                    platforms.push({ x: 700, y: 200, width: 70, height: 15, color: pc.plat });
+                    platforms.push({ x: 900, y: 260, width: 70, height: 15, color: pc.plat });
+                    platforms.push({ x: 1100, y: 310, width: 70, height: 15, color: pc.plat });
+                    platforms.push({ x: 1300, y: 240, width: 70, height: 15, color: pc.plat });
+                    platforms.push({ x: 1500, y: 190, width: 70, height: 15, color: pc.plat });
+                    platforms.push({ x: 1700, y: 270, width: 70, height: 15, color: pc.plat });
+                    platforms.push({ x: 1900, y: 220, width: 70, height: 15, color: pc.plat });
+                    platforms.push({ x: 2100, y: 290, width: 70, height: 15, color: pc.plat });
+                    enemies.push({ x: 200, y: 340, width: 30, height: 30, vx: 3, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 650, y: 340, width: 30, height: 30, vx: -3.2, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 1350, y: 340, width: 30, height: 30, vx: 3, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 1850, y: 340, width: 30, height: 30, vx: -3.1, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 750, y: 150, width: 30, height: 30, vx: -2.5, vy: 0, amplitude: 80, baseY: 150, color: colors.flyer, type: 'flyer' });
+                    enemies.push({ x: 1200, y: 160, width: 30, height: 30, vx: 2.6, vy: 0, amplitude: 75, baseY: 160, color: colors.flyer, type: 'flyer' });
+                    enemies.push({ x: 1750, y: 180, width: 30, height: 30, vx: -2.8, vy: 0, amplitude: 70, baseY: 180, color: colors.flyer, type: 'flyer' });
+                    boss = { x: 2000, y: 280, width: 60, height: 90, vx: 2, vy: 0, hp: 3, maxHp: 3, color: '#8e44ad', invincible: 0, type: 'boss', attackCooldown: 0 };
+                    coins.push({ x: 130, y: 320 }, { x: 330, y: 270 }, { x: 530, y: 220 }, { x: 730, y: 170 });
+                    coins.push({ x: 930, y: 230 }, { x: 1330, y: 210 }, { x: 1730, y: 240 }, { x: 2130, y: 260 });
+                    flag = { x: 2300, y: 310, width: 20, height: 60 };
+                    break;
+
+                // ── DLC BEACH EXPANSION — Fases 6 a 10 ──
+                case 6:
+                    platforms.push({ x: 180, y: 320, width: 110, height: 15, color: pc.plat });
+                    platforms.push({ x: 420, y: 280, width: 100, height: 15, color: pc.plat });
+                    platforms.push({ x: 680, y: 310, width: 120, height: 15, color: pc.plat });
+                    platforms.push({ x: 920, y: 250, width: 100, height: 15, color: pc.plat });
+                    platforms.push({ x: 1180, y: 290, width: 110, height: 15, color: pc.plat });
+                    platforms.push({ x: 1420, y: 240, width: 100, height: 15, color: pc.plat });
+                    platforms.push({ x: 1680, y: 300, width: 120, height: 15, color: pc.plat });
+                    platforms.push({ x: 1920, y: 260, width: 100, height: 15, color: pc.plat });
+                    platforms.push({ x: 2140, y: 310, width: 110, height: 15, color: pc.plat });
+                    enemies.push({ x: 250, y: 340, width: 30, height: 30, vx: 1.8, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 750, y: 340, width: 30, height: 30, vx: -2, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 550, y: 210, width: 30, height: 30, vx: 1.5, vy: 0, amplitude: 55, baseY: 210, color: colors.flyer, type: 'flyer' });
+                    enemies.push({ x: 1500, y: 200, width: 30, height: 30, vx: -1.7, vy: 0, amplitude: 60, baseY: 200, color: colors.flyer, type: 'flyer' });
+                    coins.push({ x: 210, y: 290 }, { x: 450, y: 250 }, { x: 710, y: 280 }, { x: 950, y: 220 });
+                    coins.push({ x: 1210, y: 260 }, { x: 1450, y: 210 }, { x: 1950, y: 230 }, { x: 2170, y: 280 });
+                    flag = { x: 2300, y: 310, width: 20, height: 60 };
+                    break;
+
+                case 7:
+                    platforms.push({ x: 150, y: 340, width: 90, height: 15, color: pc.plat });
+                    platforms.push({ x: 350, y: 290, width: 90, height: 15, color: pc.plat });
+                    platforms.push({ x: 550, y: 240, width: 90, height: 15, color: pc.plat });
+                    platforms.push({ x: 780, y: 300, width: 90, height: 15, color: pc.plat });
+                    platforms.push({ x: 980, y: 250, width: 90, height: 15, color: pc.plat });
+                    platforms.push({ x: 1200, y: 200, width: 90, height: 15, color: pc.plat });
+                    platforms.push({ x: 1450, y: 280, width: 90, height: 15, color: pc.plat });
+                    platforms.push({ x: 1680, y: 230, width: 90, height: 15, color: pc.plat });
+                    platforms.push({ x: 1900, y: 290, width: 90, height: 15, color: pc.plat });
+                    platforms.push({ x: 2120, y: 240, width: 90, height: 15, color: pc.plat });
+                    enemies.push({ x: 300, y: 340, width: 30, height: 30, vx: 2.2, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 850, y: 340, width: 30, height: 30, vx: -2.4, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 1300, y: 340, width: 30, height: 30, vx: 2.5, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 650, y: 180, width: 30, height: 30, vx: 2, vy: 0, amplitude: 70, baseY: 180, color: colors.flyer, type: 'flyer' });
+                    enemies.push({ x: 1750, y: 170, width: 30, height: 30, vx: -2.1, vy: 0, amplitude: 75, baseY: 170, color: colors.flyer, type: 'flyer' });
+                    coins.push({ x: 180, y: 310 }, { x: 380, y: 260 }, { x: 580, y: 210 }, { x: 810, y: 270 });
+                    coins.push({ x: 1010, y: 220 }, { x: 1480, y: 250 }, { x: 1930, y: 260 }, { x: 2150, y: 210 });
+                    flag = { x: 2300, y: 310, width: 20, height: 60 };
+                    break;
+
+                case 8:
+                    platforms.push({ x: 120, y: 330, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 320, y: 280, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 520, y: 230, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 720, y: 290, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 920, y: 240, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 1120, y: 190, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 1320, y: 260, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 1520, y: 210, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 1720, y: 270, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 1920, y: 220, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 2120, y: 280, width: 80, height: 15, color: pc.plat });
+                    enemies.push({ x: 200, y: 340, width: 30, height: 30, vx: 2.8, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 700, y: 340, width: 30, height: 30, vx: -3, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 1200, y: 340, width: 30, height: 30, vx: 2.9, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 1700, y: 340, width: 30, height: 30, vx: -3.1, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 450, y: 160, width: 30, height: 30, vx: 2.3, vy: 0, amplitude: 80, baseY: 160, color: colors.flyer, type: 'flyer' });
+                    enemies.push({ x: 1400, y: 150, width: 30, height: 30, vx: -2.5, vy: 0, amplitude: 85, baseY: 150, color: colors.flyer, type: 'flyer' });
+                    enemies.push({ x: 2050, y: 170, width: 30, height: 30, vx: 2.4, vy: 0, amplitude: 75, baseY: 170, color: colors.flyer, type: 'flyer' });
+                    coins.push({ x: 150, y: 300 }, { x: 350, y: 250 }, { x: 550, y: 200 }, { x: 750, y: 260 });
+                    coins.push({ x: 950, y: 210 }, { x: 1350, y: 230 }, { x: 1750, y: 240 }, { x: 2150, y: 250 });
+                    flag = { x: 2300, y: 310, width: 20, height: 60 };
+                    break;
+
+                case 9:
+                    platforms.push({ x: 100, y: 350, width: 70, height: 15, color: pc.plat });
+                    platforms.push({ x: 280, y: 300, width: 70, height: 15, color: pc.plat });
+                    platforms.push({ x: 460, y: 250, width: 70, height: 15, color: pc.plat });
+                    platforms.push({ x: 640, y: 200, width: 70, height: 15, color: pc.plat });
+                    platforms.push({ x: 820, y: 260, width: 70, height: 15, color: pc.plat });
+                    platforms.push({ x: 1000, y: 310, width: 70, height: 15, color: pc.plat });
+                    platforms.push({ x: 1180, y: 240, width: 70, height: 15, color: pc.plat });
+                    platforms.push({ x: 1360, y: 190, width: 70, height: 15, color: pc.plat });
+                    platforms.push({ x: 1540, y: 270, width: 70, height: 15, color: pc.plat });
+                    platforms.push({ x: 1720, y: 220, width: 70, height: 15, color: pc.plat });
+                    platforms.push({ x: 1900, y: 280, width: 70, height: 15, color: pc.plat });
+                    platforms.push({ x: 2080, y: 230, width: 70, height: 15, color: pc.plat });
+                    enemies.push({ x: 180, y: 340, width: 30, height: 30, vx: 3.2, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 600, y: 340, width: 30, height: 30, vx: -3.4, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 1100, y: 340, width: 30, height: 30, vx: 3.3, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 1600, y: 340, width: 30, height: 30, vx: -3.5, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 800, y: 140, width: 30, height: 30, vx: -2.8, vy: 0, amplitude: 90, baseY: 140, color: colors.flyer, type: 'flyer' });
+                    enemies.push({ x: 1300, y: 130, width: 30, height: 30, vx: 2.9, vy: 0, amplitude: 85, baseY: 130, color: colors.flyer, type: 'flyer' });
+                    enemies.push({ x: 2000, y: 150, width: 30, height: 30, vx: -3, vy: 0, amplitude: 80, baseY: 150, color: colors.flyer, type: 'flyer' });
+                    coins.push({ x: 130, y: 320 }, { x: 310, y: 270 }, { x: 490, y: 220 }, { x: 670, y: 170 });
+                    coins.push({ x: 1030, y: 280 }, { x: 1390, y: 210 }, { x: 1750, y: 240 }, { x: 2110, y: 200 });
+                    flag = { x: 2300, y: 310, width: 20, height: 60 };
+                    break;
+
+                case 10:
+                    platforms.push({ x: 80, y: 340, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 260, y: 290, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 440, y: 240, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 620, y: 190, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 800, y: 250, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 980, y: 300, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 1160, y: 230, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 1340, y: 180, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 1520, y: 260, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 1700, y: 210, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 1880, y: 270, width: 80, height: 15, color: pc.plat });
+                    platforms.push({ x: 2060, y: 220, width: 80, height: 15, color: pc.plat });
+                    enemies.push({ x: 150, y: 340, width: 30, height: 30, vx: 3.5, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 550, y: 340, width: 30, height: 30, vx: -3.6, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 1050, y: 340, width: 30, height: 30, vx: 3.4, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 1550, y: 340, width: 30, height: 30, vx: -3.7, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 700, y: 130, width: 30, height: 30, vx: 3, vy: 0, amplitude: 90, baseY: 130, color: colors.flyer, type: 'flyer' });
+                    enemies.push({ x: 1800, y: 140, width: 30, height: 30, vx: -3.1, vy: 0, amplitude: 85, baseY: 140, color: colors.flyer, type: 'flyer' });
+                    boss = {
+                        x: 1950, y: 260, width: 70, height: 100, vx: 2.5, vy: 0,
+                        hp: 5, maxHp: 5, color: '#E76F51', invincible: 0,
+                        type: 'beachBoss', attackCooldown: 0
+                    };
+                    coins.push({ x: 110, y: 310 }, { x: 290, y: 260 }, { x: 470, y: 210 }, { x: 650, y: 160 });
+                    coins.push({ x: 1010, y: 270 }, { x: 1370, y: 200 }, { x: 1730, y: 230 }, { x: 2090, y: 190 });
+                    flag = { x: 2300, y: 310, width: 20, height: 60 };
+                    break;
+            }
+
+            coins.forEach(c => c.collected = false);
+            player.x = 50; player.y = 300; player.vx = 0; player.vy = 0;
+            player.dashing = false; player.dashCooldown = 0; player.dashDuration = 0;
+            player.invincible = 0; totalCoins = 0; cameraX = 0;
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            if (gameState === 'menu') {
+                document.getElementById('levelDisplay').textContent = '🏖️ SUPER AVENTUREIRO 2: BEACH EXPANSION';
+            } else if (gameState === 'controls') {
+                document.getElementById('levelDisplay').textContent = '📖 CONTROLES';
+            } else {
+                const tag = isBeachLevel(currentLevel) ? ' 🏖️' : '';
+                document.getElementById('levelDisplay').textContent = `FASE ${currentLevel} / ${TOTAL_LEVELS}${tag}`;
+            }
+            document.getElementById('scoreDisplay').textContent = `⭐ Moedas: ${totalCoins} / ${coinsPerLevel}`;
+            document.getElementById('livesDisplay').textContent = godMode ? '👑 ∞ Vidas' : `❤️ Vidas: ${lives}`;
+            document.getElementById('godmodeDisplay').style.display = godMode ? 'block' : 'none';
+        }
+
+        function startGame() {
+            gameState = 'playing';
+            currentLevel = 1;
+            lives = 3;
+            loadLevel(1);
+            updateDisplay();
+        }
+
+        window.addEventListener('gamepadconnected', () => { gamepadConnected = true; });
+        window.addEventListener('gamepaddisconnected', () => { gamepadConnected = false; });
+
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (['Space', 'ArrowUp', 'ArrowDown', 'ShiftLeft', 'ShiftRight'].includes(e.code)) e.preventDefault();
+        });
+        window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+        function getGamepadInput() {
+            const gamepads = navigator.getGamepads();
+            if (!gamepads) return null;
+            for (const gp of gamepads) {
+                if (gp && gp.connected) {
+                    gamepadConnected = true;
+                    return gp;
+                }
+            }
+            return null;
+        }
+
+        function handleGodMode(gamepad) {
+            const kbActive = !!(keys['KeyR'] && keys['KeyL']);
+            const gpActive = !!(gamepad && gamepad.buttons[4]?.pressed && gamepad.buttons[5]?.pressed);
+            const comboActive = kbActive || gpActive;
+            if (comboActive && !godComboWasActive) {
+                godMode = !godMode;
+                updateDisplay();
+            }
+            godComboWasActive = comboActive;
+        }
+
+        function updateMenuInput(gamepad) {
+            if (menuNavCooldown > 0) menuNavCooldown--;
+            if (menuConfirmCooldown > 0) menuConfirmCooldown--;
+
+            const up = keys['ArrowUp'] || keys['KeyW'] || gamepad?.buttons[12]?.pressed || (gamepad && gamepad.axes[1] < -0.5);
+            const down = keys['ArrowDown'] || keys['KeyS'] || gamepad?.buttons[13]?.pressed || (gamepad && gamepad.axes[1] > 0.5);
+            const confirm = keys['Enter'] || keys['Space'] || gamepad?.buttons[0]?.pressed;
+            const back = keys['Escape'] || keys['Backspace'] || gamepad?.buttons[1]?.pressed;
+
+            if (gameState === 'menu') {
+                if ((up || down) && menuNavCooldown <= 0) {
+                    menuSelection = (menuSelection + (down ? 1 : -1) + menuOptions.length) % menuOptions.length;
+                    menuNavCooldown = 15;
+                }
+                if (confirm && menuConfirmCooldown <= 0) {
+                    menuConfirmCooldown = 20;
+                    if (menuOptions[menuSelection] === 'JOGAR') startGame();
+                    else { gameState = 'controls'; updateDisplay(); }
+                }
+            } else if (gameState === 'controls') {
+                if (back && menuConfirmCooldown <= 0) {
+                    menuConfirmCooldown = 20;
+                    gameState = 'menu';
+                    updateDisplay();
+                }
+            }
+        }
+
+        function update() {
+            const gamepad = getGamepadInput();
+            handleGodMode(gamepad);
+
+            if (gameState === 'menu' || gameState === 'controls') {
+                updateMenuInput(gamepad);
+                return;
+            }
+
+            if (gameState === 'gameover' || gameState === 'win' || gameState === 'bossDefeated') {
+                if (keys['Enter'] || gamepad?.buttons[0]?.pressed) {
+                    if (gameState === 'gameover') {
+                        if (!godMode) lives--;
+                        if (!godMode && lives <= 0) { lives = 3; currentLevel = 1; }
+                        loadLevel(currentLevel);
+                        gameState = 'playing';
+                    } else if (gameState === 'win' || gameState === 'bossDefeated') {
+                        if (currentLevel < TOTAL_LEVELS) {
+                            currentLevel++;
+                            loadLevel(currentLevel);
+                            gameState = 'playing';
+                        } else {
+                            currentLevel = 1; lives = 3;
+                            loadLevel(1); gameState = 'menu'; menuSelection = 0;
+                        }
+                    }
+                }
+                return;
+            }
+
+            if (player.invincible > 0) player.invincible--;
+            if (player.dashCooldown > 0) player.dashCooldown--;
+
+            let moveLeft = keys['ArrowLeft'] || keys['KeyA'];
+            let moveRight = keys['ArrowRight'] || keys['KeyD'];
+            let jump = keys['Space'] || keys['ArrowUp'] || keys['KeyW'];
+            let dash = keys['ShiftLeft'] || keys['ShiftRight'] || keys['KeyX'];
+
+            if (gamepad) {
+                if (gamepad.axes[0] < -0.5) moveLeft = true;
+                if (gamepad.axes[0] > 0.5) moveRight = true;
+                if (gamepad.buttons[14]?.pressed) moveLeft = true;
+                if (gamepad.buttons[15]?.pressed) moveRight = true;
+                if (gamepad.buttons[0]?.pressed) jump = true;
+                if (gamepad.buttons[2]?.pressed) dash = true;
+            }
+
+            if (dash && !player.dashing && player.dashCooldown <= 0) {
+                player.dashing = true; player.dashDuration = 10; player.dashCooldown = 30; player.vy = 0;
+            }
+            if (player.dashing) {
+                player.vx = player.facing * player.dashSpeed;
+                player.dashDuration--;
+                if (player.dashDuration <= 0) { player.dashing = false; player.vx = 0; }
+            } else {
+                if (moveLeft) { player.vx = -player.speed; player.facing = -1; }
+                else if (moveRight) { player.vx = player.speed; player.facing = 1; }
+                else player.vx = 0;
+            }
+
+            if (jump && player.grounded) { player.vy = player.jumpForce; player.grounded = false; }
+            player.vy += player.gravity;
+            player.y += player.vy;
+
+            player.grounded = false;
+            for (const plat of platforms) {
+                if (player.x < plat.x + plat.width && player.x + player.width > plat.x &&
+                    player.y < plat.y + plat.height && player.y + player.height > plat.y) {
+                    if (player.vy > 0 && player.y + player.height - player.vy <= plat.y) {
+                        player.y = plat.y - player.height; player.vy = 0; player.grounded = true;
+                    } else if (player.vy < 0 && player.y - player.vy >= plat.y + plat.height) {
+                        player.y = plat.y + plat.height; player.vy = 0;
+                    }
+                }
+            }
+
+            player.x += player.vx;
+            for (const plat of platforms) {
+                if (player.x < plat.x + plat.width && player.x + player.width > plat.x &&
+                    player.y < plat.y + plat.height && player.y + player.height > plat.y) {
+                    if (player.vx > 0) player.x = plat.x - player.width;
+                    else if (player.vx < 0) player.x = plat.x + plat.width;
+                    player.vx = 0;
+                }
+            }
+
+            if (player.x < 0) player.x = 0;
+            if (player.x > levelWidth - player.width) player.x = levelWidth - player.width;
+            cameraX = Math.max(0, Math.min(player.x - canvas.width / 3, levelWidth - canvas.width));
+
+            if (player.y > canvas.height) {
+                if (godMode) { player.y = 300; player.vy = 0; player.x = 50; cameraX = 0; }
+                else loseLife();
+            }
+
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const enemy = enemies[i];
+                if (enemy.type === 'walker') {
+                    enemy.x += enemy.vx;
+                    let grounded = false;
+                    for (const plat of platforms) {
+                        if (enemy.x < plat.x + plat.width && enemy.x + enemy.width > plat.x &&
+                            enemy.y + enemy.height <= plat.y + plat.height && enemy.y + enemy.height >= plat.y) grounded = true;
+                    }
+                    if (enemy.x <= 0 || enemy.x >= levelWidth - enemy.width || !grounded) enemy.vx = -enemy.vx;
+                } else if (enemy.type === 'flyer') {
+                    enemy.x += enemy.vx;
+                    enemy.y = enemy.baseY + Math.sin(Date.now() / 500) * enemy.amplitude;
+                    if (enemy.x <= 0 || enemy.x >= levelWidth - enemy.width) enemy.vx = -enemy.vx;
+                }
+                if (player.x < enemy.x + enemy.width && player.x + player.width > enemy.x &&
+                    player.y < enemy.y + enemy.height && player.y + player.height > enemy.y) {
+                    if (player.vy > 0 && player.y + player.height - player.vy <= enemy.y + 10) {
+                        enemies.splice(i, 1); player.vy = player.jumpForce * 1.4;
+                    } else if (player.dashing) enemies.splice(i, 1);
+                    else if (!godMode && player.invincible <= 0) loseLife();
+                }
+            }
+
+            if (boss && boss.hp > 0) {
+                if (boss.invincible > 0) boss.invincible--;
+                boss.x += boss.vx;
+                const minX = boss.type === 'beachBoss' ? 1650 : 1700;
+                if (boss.x <= minX || boss.x >= levelWidth - boss.width - 50) boss.vx = -boss.vx;
+
+                if (player.x < boss.x + boss.width && player.x + player.width > boss.x &&
+                    player.y < boss.y + boss.height && player.y + player.height > boss.y) {
+                    if (player.vy > 0 && player.y + player.height - player.vy <= boss.y + 15 && boss.invincible <= 0) {
+                        boss.hp--; boss.invincible = 30;
+                        player.vy = player.jumpForce * 1.5; player.y = boss.y - player.height;
+                        if (boss.hp <= 0) { boss = null; gameState = 'bossDefeated'; }
+                    } else if (player.dashing && boss.invincible <= 0) {
+                        boss.hp--; boss.invincible = 30; player.vx = -player.facing * 8;
+                        if (boss.hp <= 0) { boss = null; gameState = 'bossDefeated'; }
+                    } else if (!godMode && player.invincible <= 0 && boss.invincible <= 0) loseLife();
+                }
+            }
+
+            for (const coin of coins) {
+                if (!coin.collected && player.x < coin.x + 15 && player.x + player.width > coin.x &&
+                    player.y < coin.y + 15 && player.y + player.height > coin.y) {
+                    coin.collected = true; totalCoins++; updateDisplay();
+                }
+            }
+
+            const bossBlocksFlag = (currentLevel === 5 || currentLevel === 10) && boss && boss.hp > 0;
+            if (!bossBlocksFlag && player.x < flag.x + flag.width && player.x + player.width > flag.x &&
+                player.y < flag.y + flag.height && player.y + player.height > flag.y && totalCoins >= coinsPerLevel) {
+                gameState = 'win';
+            }
+            if (gameState === 'bossDefeated' && player.x < flag.x + flag.width && player.x + player.width > flag.x &&
+                player.y < flag.y + flag.height && player.y + player.height > flag.y && totalCoins >= coinsPerLevel) {
+                gameState = 'win';
+            }
+        }
+
+        function loseLife() {
+            if (godMode) return;
+            lives--; updateDisplay();
+            if (lives <= 0) { gameState = 'gameover'; lives = 0; }
+            else { player.x = 50; player.y = 300; player.vy = 0; player.invincible = 60; cameraX = 0; }
+        }
+
+        function drawBeachDecorations() {
+            ctx.fillStyle = '#FFD166';
+            ctx.beginPath();
+            ctx.arc(200, 60, 35, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#0077B6';
+            ctx.fillRect(0, 300, levelWidth, 70);
+
+            for (let i = 0; i < 8; i++) {
+                const px = (i * 320 + 80) % levelWidth;
+                ctx.fillStyle = '#2D6A4F';
+                ctx.fillRect(px, 280, 8, 40);
+                ctx.fillStyle = '#40916C';
+                ctx.beginPath();
+                ctx.moveTo(px - 20, 290);
+                ctx.lineTo(px + 4, 250);
+                ctx.lineTo(px + 28, 290);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(px + 4, 290);
+                ctx.lineTo(px + 30, 255);
+                ctx.lineTo(px + 50, 290);
+                ctx.fill();
+            }
+
+            ctx.fillStyle = 'rgba(255,255,255,0.6)';
+            for (let i = 0; i < 6; i++) {
+                const wx = (i * 400 + Date.now() / 30) % levelWidth;
+                ctx.fillRect(wx, 320, 60, 4);
+                ctx.fillRect(wx + 20, 328, 40, 3);
+            }
+        }
+
+        function drawBeachBoss(b) {
+            const flash = b.invincible % 10 < 5;
+            ctx.fillStyle = flash ? b.color : '#FFD166';
+            ctx.fillRect(b.x, b.y + 20, b.width, b.height - 20);
+            ctx.fillStyle = flash ? '#D62828' : '#FF6B35';
+            ctx.fillRect(b.x - 15, b.y + 50, 20, 35);
+            ctx.fillRect(b.x + b.width - 5, b.y + 50, 20, 35);
+            ctx.fillStyle = '#D62828';
+            ctx.fillRect(b.x + 8, b.y + 30, 14, 14);
+            ctx.fillRect(b.x + b.width - 22, b.y + 30, 14, 14);
+            ctx.fillStyle = 'black';
+            ctx.fillRect(b.x + 12, b.y + 34, 6, 6);
+            ctx.fillRect(b.x + b.width - 18, b.y + 34, 6, 6);
+            ctx.fillStyle = '#E76F51';
+            ctx.fillRect(b.x + 20, b.y + 55, 30, 8);
+            ctx.fillStyle = '#2D6A4F';
+            ctx.fillRect(b.x, b.y - 45, b.width, 8);
+            ctx.fillStyle = '#40916C';
+            ctx.fillRect(b.x, b.y - 45, b.width * (b.hp / b.maxHp), 8);
+            ctx.strokeStyle = 'white';
+            ctx.strokeRect(b.x, b.y - 45, b.width, 8);
+            ctx.fillStyle = '#FFD166';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('REI CARANGUEJO', b.x + b.width / 2, b.y - 52);
+        }
+
+        function draw() {
+            ctx.save();
+            ctx.translate(-cameraX, 0);
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            if (isBeachLevel(currentLevel)) {
+                gradient.addColorStop(0, '#48CAE4');
+                gradient.addColorStop(0.6, '#90E0EF');
+                gradient.addColorStop(1, '#CAF0F8');
+            } else if (currentLevel === 5) {
+                gradient.addColorStop(0, '#2c3e50');
+                gradient.addColorStop(1, '#34495e');
+            } else {
+                gradient.addColorStop(0, '#87CEEB');
+                gradient.addColorStop(1, '#98FB98');
+            }
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, levelWidth, canvas.height);
+
+            if (isBeachLevel(currentLevel)) drawBeachDecorations();
+            else if (currentLevel !== 5) {
+                ctx.fillStyle = 'white';
+                for (let i = 0; i < 10; i++) {
+                    const cloudX = (i * 250 + 100) % levelWidth;
+                    ctx.beginPath();
+                    ctx.arc(cloudX, 50, 25, 0, Math.PI * 2);
+                    ctx.arc(cloudX + 30, 45, 30, 0, Math.PI * 2);
+                    ctx.arc(cloudX + 60, 50, 25, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            for (const plat of platforms) {
+                ctx.fillStyle = plat.color;
+                ctx.fillRect(plat.x, plat.y, plat.width, plat.height);
+                ctx.strokeStyle = isBeachLevel(currentLevel) ? '#A67C00' : '#3e2723';
+                ctx.lineWidth = 1;
+                for (let i = 0; i < plat.width; i += 20) ctx.strokeRect(plat.x + i, plat.y, 20, plat.height);
+            }
+
+            for (const coin of coins) {
+                if (!coin.collected) {
+                    ctx.fillStyle = '#FFD700';
+                    ctx.beginPath(); ctx.arc(coin.x + 7, coin.y + 7, 8, 0, Math.PI * 2); ctx.fill();
+                    ctx.strokeStyle = '#FFA500'; ctx.lineWidth = 2; ctx.stroke();
+                    ctx.fillStyle = '#FFF8DC';
+                    ctx.beginPath(); ctx.arc(coin.x + 5, coin.y + 5, 3, 0, Math.PI * 2); ctx.fill();
+                }
+            }
+
+            for (const enemy of enemies) {
+                if (enemy.type === 'walker') {
+                    ctx.fillStyle = enemy.color;
+                    ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+                    if (isBeachLevel(currentLevel)) {
+                        ctx.fillStyle = '#D62828';
+                        ctx.fillRect(enemy.x + 5, enemy.y + 22, 8, 6);
+                        ctx.fillRect(enemy.x + 17, enemy.y + 22, 8, 6);
+                    }
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(enemy.x + 5, enemy.y + 5, 8, 8);
+                    ctx.fillRect(enemy.x + 17, enemy.y + 5, 8, 8);
+                    ctx.fillStyle = 'black';
+                    ctx.fillRect(enemy.x + 7, enemy.y + 7, 4, 4);
+                    ctx.fillRect(enemy.x + 19, enemy.y + 7, 4, 4);
+                } else if (enemy.type === 'flyer') {
+                    ctx.fillStyle = enemy.color;
+                    ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+                    ctx.fillStyle = isBeachLevel(currentLevel) ? '#CAF0F8' : '#f39c12';
+                    ctx.beginPath();
+                    ctx.moveTo(enemy.x - 5, enemy.y + 10); ctx.lineTo(enemy.x - 15, enemy.y); ctx.lineTo(enemy.x - 5, enemy.y + 20); ctx.fill();
+                    ctx.beginPath();
+                    ctx.moveTo(enemy.x + enemy.width + 5, enemy.y + 10); ctx.lineTo(enemy.x + enemy.width + 15, enemy.y); ctx.lineTo(enemy.x + enemy.width + 5, enemy.y + 20); ctx.fill();
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(enemy.x + 5, enemy.y + 8, 8, 8);
+                    ctx.fillRect(enemy.x + 17, enemy.y + 8, 8, 8);
+                    ctx.fillStyle = 'black';
+                    ctx.fillRect(enemy.x + 7, enemy.y + 10, 4, 4);
+                    ctx.fillRect(enemy.x + 19, enemy.y + 10, 4, 4);
+                }
+            }
+
+            if (boss && boss.hp > 0) {
+                if (boss.type === 'beachBoss') drawBeachBoss(boss);
+                else {
+                    ctx.fillStyle = boss.invincible % 10 < 5 ? boss.color : '#f1c40f';
+                    ctx.fillRect(boss.x, boss.y, boss.width, boss.height);
+                    ctx.fillStyle = '#f1c40f';
+                    ctx.beginPath();
+                    ctx.moveTo(boss.x, boss.y); ctx.lineTo(boss.x + 10, boss.y - 20); ctx.lineTo(boss.x + 20, boss.y - 5);
+                    ctx.lineTo(boss.x + 30, boss.y - 25); ctx.lineTo(boss.x + 40, boss.y - 5); ctx.lineTo(boss.x + 50, boss.y - 20);
+                    ctx.lineTo(boss.x + 60, boss.y); ctx.fill();
+                    ctx.fillStyle = '#e74c3c';
+                    ctx.fillRect(boss.x + 10, boss.y + 10, 12, 12);
+                    ctx.fillRect(boss.x + 38, boss.y + 10, 12, 12);
+                    ctx.fillStyle = 'black';
+                    ctx.fillRect(boss.x + 14, boss.y + 14, 4, 4);
+                    ctx.fillRect(boss.x + 42, boss.y + 14, 4, 4);
+                    ctx.fillStyle = '#e74c3c';
+                    ctx.fillRect(boss.x, boss.y - 35, boss.width, 8);
+                    ctx.fillStyle = '#2ecc71';
+                    ctx.fillRect(boss.x, boss.y - 35, boss.width * (boss.hp / boss.maxHp), 8);
+                    ctx.strokeStyle = 'white';
+                    ctx.strokeRect(boss.x, boss.y - 35, boss.width, 8);
+                }
+            }
+
+            const bossBlocksFlag = (currentLevel === 5 || currentLevel === 10) && boss && boss.hp > 0;
+            if (!bossBlocksFlag) {
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(flag.x, flag.y, 5, flag.height);
+                const flagColors = ['#e74c3c', '#3498db', '#f1c40f', '#9b59b6', '#e67e22', '#00B4D8', '#FF6B35', '#2A9D8F', '#FFD166', '#E76F51'];
+                ctx.fillStyle = flagColors[currentLevel - 1];
+                ctx.beginPath();
+                ctx.moveTo(flag.x + 5, flag.y);
+                ctx.lineTo(flag.x + 30, flag.y + 15);
+                ctx.lineTo(flag.x + 5, flag.y + 30);
+                ctx.fill();
+            }
+
+            if (player.invincible % 10 < 5 || player.invincible <= 0 || godMode) {
+                ctx.fillStyle = godMode ? '#f1c40f' : (player.dashing ? '#f39c12' : player.color);
+                ctx.fillRect(player.x, player.y, player.width, player.height);
+                if (godMode) {
+                    ctx.strokeStyle = '#f1c40f'; ctx.lineWidth = 3;
+                    ctx.strokeRect(player.x - 3, player.y - 3, player.width + 6, player.height + 6);
+                }
+                if (isBeachLevel(currentLevel)) {
+                    ctx.fillStyle = '#FFD166';
+                    ctx.fillRect(player.x + 5, player.y - 5, player.width - 10, 6);
+                } else {
+                    ctx.fillStyle = '#c0392b';
+                    ctx.fillRect(player.x - 2, player.y - 8, player.width + 4, 10);
+                }
+                ctx.fillStyle = 'white';
+                if (player.facing === 1) ctx.fillRect(player.x + 20, player.y + 8, 8, 8);
+                else ctx.fillRect(player.x + 2, player.y + 8, 8, 8);
+                ctx.fillStyle = 'black';
+                if (player.facing === 1) ctx.fillRect(player.x + 22, player.y + 10, 4, 4);
+                else ctx.fillRect(player.x + 4, player.y + 10, 4, 4);
+            }
+
+            ctx.restore();
+
+            if (gameState === 'menu') {
+                ctx.fillStyle = 'rgba(0, 60, 100, 0.85)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#FFD166';
+                ctx.font = '36px Arial'; ctx.textAlign = 'center';
+                ctx.fillText('SUPER AVENTUREIRO 2', canvas.width / 2, 70);
+                ctx.fillStyle = '#48CAE4';
+                ctx.font = '28px Arial';
+                ctx.fillText('🏖️ BEACH EXPANSION 🏖️', canvas.width / 2, 110);
+                ctx.fillStyle = '#CAF0F8';
+                ctx.font = '16px Arial';
+                ctx.fillText('DLC · 10 Fases · Novo Boss da Praia', canvas.width / 2, 140);
+
+                menuOptions.forEach((opt, i) => {
+                    const selected = i === menuSelection;
+                    ctx.fillStyle = selected ? '#FFD166' : '#90E0EF';
+                    ctx.font = selected ? 'bold 28px Arial' : '24px Arial';
+                    const prefix = selected ? '▶ ' : '   ';
+                    ctx.fillText(prefix + opt, canvas.width / 2, 210 + i * 45);
+                });
+
+                ctx.fillStyle = '#CAF0F8';
+                ctx.font = '14px Arial';
+                ctx.fillText('↑↓ Navegar · ENTER/A Confirmar · 🎮 Gamepad OK', canvas.width / 2, 340);
+                if (Math.sin(Date.now() / 500) > 0) {
+                    ctx.fillStyle = '#FFD166';
+                    ctx.font = '16px Arial';
+                    ctx.fillText('10 fases · 5 originais + 5 de praia', canvas.width / 2, 370);
+                }
+            } else if (gameState === 'controls') {
+                ctx.fillStyle = 'rgba(0, 60, 100, 0.9)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#FFD166';
+                ctx.font = '32px Arial'; ctx.textAlign = 'center';
+                ctx.fillText('CONTROLES', canvas.width / 2, 60);
+                ctx.fillStyle = 'white'; ctx.font = '18px Arial';
+                const lines = [
+                    'Setas / WASD — Mover',
+                    'Espaço / W — Pular',
+                    'Shift / X — Dash',
+                    'Pular em inimigos — Derrotar',
+                    '🎮 Gamepad: D-Pad=Mover | A=Pular | X=Dash',
+                    '👑 R+L (teclado) ou LB+RB (gamepad) = Modo Invencível',
+                    '',
+                    'ESC / B — Voltar ao menu'
+                ];
+                lines.forEach((line, i) => ctx.fillText(line, canvas.width / 2, 110 + i * 28));
+            } else if (gameState === 'gameover') {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#e74c3c'; ctx.font = '40px Arial'; ctx.textAlign = 'center';
+                ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 20);
+                ctx.fillStyle = 'white'; ctx.font = '20px Arial';
+                ctx.fillText(`Vidas restantes: ${godMode ? '∞' : lives}`, canvas.width / 2, canvas.height / 2 + 20);
+                ctx.fillText('Pressione ENTER ou 🎮 A para continuar', canvas.width / 2, canvas.height / 2 + 50);
+            } else if (gameState === 'win') {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = isBeachLevel(currentLevel) ? '#FFD166' : '#f1c40f';
+                ctx.font = '40px Arial'; ctx.textAlign = 'center';
+                if (currentLevel < TOTAL_LEVELS) {
+                    ctx.fillText(`FASE ${currentLevel} COMPLETA!`, canvas.width / 2, canvas.height / 2 - 20);
+                    if (currentLevel === 5) {
+                        ctx.fillStyle = '#48CAE4'; ctx.font = '20px Arial';
+                        ctx.fillText('🏖️ A Beach Expansion começa agora!', canvas.width / 2, canvas.height / 2 + 10);
+                    }
+                } else {
+                    ctx.fillText('🏆 VITÓRIA NA PRAIA! 🏆', canvas.width / 2, canvas.height / 2 - 20);
+                }
+                ctx.fillStyle = 'white'; ctx.font = '20px Arial';
+                ctx.fillText('Pressione ENTER ou 🎮 A para continuar', canvas.width / 2, canvas.height / 2 + 40);
+            } else if (gameState === 'bossDefeated') {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#2ecc71'; ctx.font = '40px Arial'; ctx.textAlign = 'center';
+                ctx.fillText(currentLevel === 10 ? 'REI CARANGUEJO DERROTADO!' : 'BOSS DERROTADO!', canvas.width / 2, canvas.height / 2 - 20);
+                ctx.fillStyle = 'white'; ctx.font = '20px Arial';
+                ctx.fillText('Agora vá até a bandeira para completar a fase!', canvas.width / 2, canvas.height / 2 + 20);
+            }
+        }
+
+        function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
+
+        loadLevel(1);
+        gameState = 'menu';
+        updateDisplay();
+        gameLoop();
+    </script>
+</body>
+</html>

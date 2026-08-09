@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Super Aventureiro 2: Agent Edition</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background:#000; display:flex; justify-content:center; align-items:center;
+  height:100vh; font-family:Arial,sans-serif; flex-direction:column; overflow:hidden;
+}
+canvas { border:2px solid #333; image-rendering:pixelated; }
+#info { color:white; margin-top:10px; text-align:center; }
+.hud { display:flex; gap:20px; justify-content:center; }
+.god { color:#f1c40f; font-weight:bold; animation:pulse .5s infinite alternate; }
+@keyframes pulse { from{opacity:.5} to{opacity:1} }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<div id="info">
+  <div id="levelDisplay">MENU</div>
+  <div class="hud">
+    <div id="scoreDisplay">⭐ 0 / 8</div>
+    <div id="livesDisplay">❤️ Vidas: 3</div>
+  </div>
+  <div id="godmodeDisplay" style="display:none;" class="god">👑 MODO INVENCÍVEL</div>
+  <div class="controls" style="color:#888;font-size:12px;margin-top:4px">
+    🎮 A=pular · X=dash · B=atirar · LB+RB=Invencível &nbsp;|&nbsp;
+    ⌨️ Setas+Espaço · Shift=dash · Z=atirar · R+L=Invencível
+  </div>
+</div>
+<script>
+'use strict';
+
+const canvas = document.getElementById('gameCanvas');
+const ctx    = canvas.getContext('2d');
+canvas.width = 800; canvas.height = 400;
+
+/* ══════════════════════════════════════════════════════
+   ESTADO GLOBAL
+══════════════════════════════════════════════════════ */
+let gameState = 'menu';   // menu | playing | bossDefeated | win | gameover
+let currentLevel = 1;
+let totalCoins   = 0;
+const COINS_PER_LEVEL = 8;
+let lives = 3;
+let cameraX = 0;
+const LW = 2400; // largura do nivel
+
+let godMode          = false;
+let godComboWasActive= false;
+let jumpWasPressed   = false;
+let shootWasPressed  = false;
+let shootCooldown    = 0;
+let doubleJumpMsgTimer = 0;
+let postBossTimer    = 0;   // delay antes de poder avançar apos boss
+
+/* ══════════════════════════════════════════════════════
+   JOGADOR
+══════════════════════════════════════════════════════ */
+const player = {
+  x:50, y:300, width:30, height:40,
+  vx:0, vy:0, speed:5,
+  jumpForce:-11, gravity:0.6,
+  grounded:false, color:'#1a3a5c',
+  facing:1, invincible:0,
+  dashing:false, dashCooldown:0, dashSpeed:12, dashDuration:0,
+  jumpsLeft:1, maxJumps:1,
+};
+
+/* ══════════════════════════════════════════════════════
+   ENTIDADES
+══════════════════════════════════════════════════════ */
+let platforms=[], enemies=[], coins=[], playerBullets=[], enemyBullets=[];
+let boss = null;
+let flag = {x:0,y:0,width:20,height:60};
+
+/* ══════════════════════════════════════════════════════
+   INPUT
+══════════════════════════════════════════════════════ */
+const keys = {};
+window.addEventListener('keydown', e=>{
+  keys[e.code]=true;
+  if(['Space','ArrowUp','ArrowDown','ShiftLeft','ShiftRight'].includes(e.code)) e.preventDefault();
+});
+window.addEventListener('keyup', e=>{ keys[e.code]=false; });
+
+function getGamepad(){
+  const gs=navigator.getGamepads(); if(!gs) return null;
+  for(const g of gs) if(g&&g.connected) return g;
+  return null;
+}
+function handleGodMode(gp){
+  const kb=!!(keys['KeyR']&&keys['KeyL']);
+  const gpa=!!(gp&&gp.buttons[4]?.pressed&&gp.buttons[5]?.pressed);
+  const on=kb||gpa;
+  if(on&&!godComboWasActive){godMode=!godMode;updateDisplay();}
+  godComboWasActive=on;
+}
+
+/* ══════════════════════════════════════════════════════
+   FACTORIES
+══════════════════════════════════════════════════════ */
+const mkWalker=(x,y,vx,color)=>
+  ({x,y,width:30,height:30,vx,color,type:'walker',hp:1});
+
+const mkFlyer=(x,y,vx,amp,color)=>
+  ({x,y,width:30,height:30,vx,amplitude:amp,baseY:y,vy:0,color,type:'flyer',hp:1});
+
+const mkShooter=(x,y,vx,color)=>({
+  x,y,width:32,height:32,vx,color,type:'shooter',hp:1,
+  shootCooldown:Math.floor(Math.random()*80),
+  shootInterval:90, facing:vx>0?1:-1,
+});
+
+const mkBoss1=(x,y)=>({
+  x,y,width:52,height:72,vx:2.5,
+  hp:5,maxHp:5,color:'#c0392b',
+  invincible:0,type:'boss1',
+  attackCooldown:80,shootInterval:80,
+  name:'TENENTE SCARFACE',
+});
+
+const mkBoss2=(x,y)=>({
+  x,y,width:62,height:88,vx:3,
+  hp:8,maxHp:8,color:'#1a0d05',
+  invincible:0,type:'boss2',
+  attackCooldown:55,shootInterval:55,
+  name:'DON DIAMANTE',
+});
+
+function mkCoins(...pts){ return pts.map(([x,y])=>({x,y,collected:false})); }
+
+function levelCol(lv){
+  if(lv<=2)  return {w:'#27ae60',f:'#e67e22',s:'#8e44ad'};
+  if(lv<=4)  return {w:'#2980b9',f:'#f39c12',s:'#6c3483'};
+  if(lv===5) return {w:'#c0392b',f:'#e74c3c',s:'#7d3c98'};
+  if(lv<=7)  return {w:'#2ecc71',f:'#f39c12',s:'#8e44ad'};
+  if(lv<=9)  return {w:'#e74c3c',f:'#c0392b',s:'#a93226'};
+  return              {w:'#7f8c8d',f:'#c0392b',s:'#7d3c98'};
+}
+const PC=(lv)=>lv<=5?'#5a5a6a':'#3a3a4a';
+const PS=(lv)=>lv<=5?'#3d3d50':'#252535';
+
+/* ══════════════════════════════════════════════════════
+   CARREGA NÍVEL
+══════════════════════════════════════════════════════ */
+function loadLevel(lv){
+  platforms=[];enemies=[];coins=[];
+  playerBullets=[];enemyBullets=[];
+  boss=null;
+
+  const pc=PC(lv), ps=PS(lv);
+  const gnd={x:0,y:370,width:LW,height:30,color:pc,stroke:ps};
+  platforms.push(gnd);
+
+  const col=levelCol(lv);
+  player.maxJumps = lv>=6?2:1;
+  if(lv===6) doubleJumpMsgTimer=240;
+
+  // helpers
+  const ap=(x,y,w)=>platforms.push({x,y,width:w,height:15,color:pc,stroke:ps});
+  const aw=(x,y,vx)=>enemies.push(mkWalker(x,y,vx,col.w));
+  const af=(x,y,vx,amp)=>enemies.push(mkFlyer(x,y,vx,amp,col.f));
+  const as=(x,y,vx)=>enemies.push(mkShooter(x,y,vx,col.s));
+  const ac=(...pts)=>coins.push(...mkCoins(...pts));
+
+  switch(lv){
+    /* ── MISSÃO 1: Rua da Cidade ── */
+    case 1:
+      ap(200,320,100);ap(420,270,120);ap(660,308,100);
+      ap(900,252,110);ap(1150,308,120);ap(1400,260,100);
+      ap(1650,308,120);ap(1900,248,100);ap(2100,295,120);
+      aw(300,340,1.5);aw(700,340,-1.5);
+      ac([225,290],[445,240],[685,278],[925,222],[1175,278],[1425,230],[1675,278],[1925,218]);
+      flag={x:2300,y:310,width:20,height:60}; break;
+
+    /* ── MISSÃO 2: Beco Escuro ── */
+    case 2:
+      ap(150,330,90);ap(330,280,90);ap(510,240,90);
+      ap(730,300,90);ap(950,252,90);ap(1170,308,90);
+      ap(1390,260,90);ap(1620,302,90);ap(1850,242,90);ap(2070,292,90);
+      aw(400,340,2.0);aw(900,340,-2.0);
+      as(650,340,1.5);
+      ac([175,300],[355,250],[535,210],[755,270],[975,222],[1395,230],[1645,272],[1875,212]);
+      flag={x:2300,y:310,width:20,height:60}; break;
+
+    /* ── MISSÃO 3: Telhados ── */
+    case 3:
+      ap(100,340,80);ap(280,290,80);ap(460,240,80);
+      ap(660,300,80);ap(860,252,80);ap(1060,202,80);
+      ap(1260,260,80);ap(1460,308,80);ap(1660,240,80);
+      ap(1860,192,80);ap(2060,280,80);
+      aw(300,340,2.2);af(600,200,1.5,60);as(1100,340,-1.8);
+      ac([125,310],[305,260],[485,210],[685,270],[885,222],[1085,172],[1485,278],[1885,162]);
+      flag={x:2300,y:310,width:20,height:60}; break;
+
+    /* ── MISSÃO 4: Estacionamento Subterrâneo ── */
+    case 4:
+      ap(150,340,100);ap(350,300,100);ap(550,260,100);
+      ap(750,308,100);ap(950,260,100);ap(1150,210,100);
+      ap(1350,270,100);ap(1550,318,100);ap(1750,262,100);
+      ap(1950,212,100);ap(2150,292,100);
+      aw(250,340,2.5);aw(850,340,-2.5);
+      as(600,340,1.8);as(1600,340,-2.0);
+      ac([175,310],[375,270],[575,230],[775,278],[975,230],[1175,180],[1775,232],[2175,262]);
+      flag={x:2300,y:310,width:20,height:60}; break;
+
+    /* ── MISSÃO 5: BOSS — Tenente Scarface ── */
+    case 5:
+      ap(200,330,150);ap(600,280,150);ap(1100,252,150);
+      ap(1600,302,150);ap(2000,262,150);
+      aw(300,340,2.0);af(700,200,-1.5,70);
+      boss=mkBoss1(2000,272);
+      ac([225,300],[625,252],[1125,222],[1625,272],[500,340],[900,340],[1400,340],[1800,340]);
+      flag={x:2300,y:310,width:20,height:60}; break;
+
+    /* ── MISSÃO 6: Cidade Profunda — PULO DUPLO! ── */
+    case 6:
+      ap(100,340,80);ap(280,280,80);ap(480,222,80);
+      ap(700,282,80);ap(920,230,80);ap(1120,172,80);
+      ap(1350,242,80);ap(1580,302,80);ap(1800,222,80);
+      ap(2000,172,80);ap(2200,252,80);
+      aw(350,340,2.5);aw(1000,340,-2.5);
+      as(800,340,2.0);as(1700,340,-2.2);
+      af(1400,188,1.8,60);
+      ac([125,310],[305,250],[505,192],[725,252],[945,200],[1145,142],[1605,272],[1825,192]);
+      flag={x:2300,y:310,width:20,height:60}; break;
+
+    /* ── MISSÃO 7: Distrito dos Cassinos ── */
+    case 7:
+      ap(120,330,90);ap(320,280,90);ap(520,230,90);
+      ap(750,290,90);ap(980,242,90);ap(1200,190,90);
+      ap(1420,262,90);ap(1650,308,90);ap(1870,242,90);
+      ap(2070,182,90);
+      aw(220,340,2.8);aw(850,340,-2.8);aw(1700,340,3.0);
+      as(600,340,2.0);as(1300,340,-2.2);
+      ac([145,300],[345,250],[545,200],[775,260],[1005,212],[1225,160],[1675,278],[1895,212]);
+      flag={x:2300,y:310,width:20,height:60}; break;
+
+    /* ── MISSÃO 8: Esgotos ── */
+    case 8:
+      ap(100,348,70);ap(260,298,70);ap(420,248,70);
+      ap(600,308,70);ap(780,260,70);ap(960,210,70);
+      ap(1160,280,70);ap(1360,318,70);ap(1560,248,70);
+      ap(1760,198,70);ap(1960,280,70);ap(2160,228,70);
+      af(400,200,2.0,70);af(1200,210,-2.0,70);
+      as(500,340,2.0);as(900,340,-2.2);as(1600,340,2.5);
+      ac([125,318],[285,268],[445,218],[625,278],[805,230],[985,180],[1585,218],[1785,168]);
+      flag={x:2300,y:310,width:20,height:60}; break;
+
+    /* ── MISSÃO 9: QG da Máfia ── */
+    case 9:
+      ap(150,330,80);ap(330,270,80);ap(530,210,80);
+      ap(730,280,80);ap(930,230,80);ap(1130,170,80);
+      ap(1330,250,80);ap(1540,308,80);ap(1740,242,80);
+      ap(1940,182,80);ap(2140,272,80);
+      aw(250,340,3.0);aw(800,340,-3.0);aw(1600,340,3.0);
+      af(600,180,2.0,75);af(1400,190,-2.2,70);
+      as(400,340,2.5);as(1250,340,-2.5);
+      ac([175,300],[355,240],[555,180],[755,250],[955,200],[1155,140],[1765,212],[1965,152]);
+      flag={x:2300,y:310,width:20,height:60}; break;
+
+    /* ── MISSÃO 10: BOSS FINAL — Don Diamante ── */
+    case 10:
+      ap(150,330,130);ap(450,270,130);ap(800,242,130);
+      ap(1150,302,130);ap(1500,262,130);ap(1900,222,130);
+      as(300,340,2.0);as(600,340,-2.0);
+      boss=mkBoss2(2000,268);
+      ac([175,300],[475,240],[825,212],[1175,272],[1525,232],[1000,340],[1700,340],[1925,192]);
+      flag={x:2300,y:310,width:20,height:60}; break;
+  }
+
+  coins.forEach(c=>c.collected=false);
+  Object.assign(player,{
+    x:50,y:300,vx:0,vy:0,
+    dashing:false,dashCooldown:0,dashDuration:0,
+    invincible:0,jumpsLeft:player.maxJumps,
+  });
+  totalCoins=0; cameraX=0;
+  shootCooldown=0; jumpWasPressed=false; shootWasPressed=false;
+  updateDisplay();
+}
+
+/* ══════════════════════════════════════════════════════
+   DISPLAY
+══════════════════════════════════════════════════════ */
+function updateDisplay(){
+  document.getElementById('levelDisplay').textContent =
+    gameState==='menu' ? '🕵️ SUPER AVENTUREIRO 2: AGENT EDITION'
+                       : `MISSÃO ${currentLevel} / 10`;
+  document.getElementById('scoreDisplay').textContent = `⭐ ${totalCoins} / ${COINS_PER_LEVEL}`;
+  document.getElementById('livesDisplay').textContent = godMode?'👑 ∞ Vidas':`❤️ Vidas: ${lives}`;
+  document.getElementById('godmodeDisplay').style.display = godMode?'block':'none';
+}
+
+/* ══════════════════════════════════════════════════════
+   FÍSICA
+══════════════════════════════════════════════════════ */
+function isGrounded(ent){
+  const cx=ent.x+ent.width/2, fy=ent.y+ent.height;
+  for(const p of platforms)
+    if(cx>=p.x&&cx<=p.x+p.width&&fy>=p.y-2&&fy<=p.y+p.height) return true;
+  return false;
+}
+
+function loseLife(){
+  if(godMode) return;
+  lives--; updateDisplay();
+  if(lives<=0){ gameState='gameover'; lives=0; return; }
+  Object.assign(player,{x:50,y:300,vx:0,vy:0,invincible:90,
+    dashing:false,dashCooldown:0,dashDuration:0,jumpsLeft:player.maxJumps});
+  cameraX=0; playerBullets=[]; enemyBullets=[];
+}
+
+function fireBossShot(b){
+  const dir=player.x>b.x?1:-1;
+  enemyBullets.push({
+    x:b.x+(dir===1?b.width:-14), y:b.y+b.height*0.3,
+    vx:6*dir, vy:0, width:14,height:8, active:true, isBoss:true,
+  });
+  // Don Diamante: segundo tiro quando com HP baixo
+  if(b.type==='boss2'&&b.hp<=4){
+    enemyBullets.push({
+      x:b.x+(dir===1?b.width:-14), y:b.y+b.height*0.6,
+      vx:5.5*dir, vy:-0.5, width:12,height:7, active:true, isBoss:true,
+    });
+  }
+}
+
+function advanceLevel(){
+  if(currentLevel<10){
+    currentLevel++; loadLevel(currentLevel); gameState='playing';
+  } else {
+    gameState='menu'; currentLevel=1; lives=3; loadLevel(1);
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   UPDATE
+══════════════════════════════════════════════════════ */
+function update(){
+  const gp=getGamepad();
+  handleGodMode(gp);
+
+  /* ── MENU ── */
+  if(gameState==='menu'){
+    if(keys['Enter']||keys['Space']||gp?.buttons[0]?.pressed){
+      gameState='playing'; currentLevel=1; lives=3; loadLevel(1); updateDisplay();
+    }
+    return;
+  }
+
+  /* ── GAMEOVER / WIN ── */
+  if(gameState==='gameover'||gameState==='win'){
+    if(keys['Enter']||gp?.buttons[0]?.pressed){
+      if(gameState==='gameover'){ lives=3; currentLevel=1; loadLevel(1); gameState='playing'; }
+      else advanceLevel();
+    }
+    return;
+  }
+
+  /* ── PLAYING / BOSS DEFEATED ── */
+  if(player.invincible>0)  player.invincible--;
+  if(player.dashCooldown>0) player.dashCooldown--;
+  if(shootCooldown>0)      shootCooldown--;
+  if(doubleJumpMsgTimer>0) doubleJumpMsgTimer--;
+  if(postBossTimer>0)      postBossTimer--;
+
+  /* Input */
+  let moveLeft  = keys['ArrowLeft'] ||keys['KeyA'];
+  let moveRight = keys['ArrowRight']||keys['KeyD'];
+  const jumpNow  = !!(keys['Space']||keys['ArrowUp']||keys['KeyW']||gp?.buttons[0]?.pressed);
+  const jumpJust = jumpNow&&!jumpWasPressed; jumpWasPressed=jumpNow;
+
+  let dash      = !!(keys['ShiftLeft']||keys['ShiftRight']||keys['KeyX']||gp?.buttons[2]?.pressed);
+  const shootNow = !!(keys['KeyZ']||keys['KeyC']||gp?.buttons[1]?.pressed);
+  const shootJust= shootNow&&!shootWasPressed; shootWasPressed=shootNow;
+
+  if(gp){
+    if(gp.axes[0]<-0.5||gp.buttons[14]?.pressed) moveLeft=true;
+    if(gp.axes[0]> 0.5||gp.buttons[15]?.pressed) moveRight=true;
+  }
+
+  /* Dash */
+  if(dash&&!player.dashing&&player.dashCooldown<=0){
+    player.dashing=true; player.dashDuration=10; player.dashCooldown=30; player.vy=0;
+  }
+  if(player.dashing){
+    player.vx=player.facing*player.dashSpeed; player.dashDuration--;
+    if(player.dashDuration<=0){ player.dashing=false; player.vx=0; }
+  } else {
+    if(moveLeft)      { player.vx=-player.speed; player.facing=-1; }
+    else if(moveRight){ player.vx= player.speed; player.facing= 1; }
+    else              { player.vx=0; }
+  }
+
+  /* Atirar */
+  if(shootJust&&shootCooldown<=0){
+    playerBullets.push({
+      x:player.x+(player.facing===1?player.width:-12),
+      y:player.y+player.height/2-3,
+      vx:9*player.facing, width:12,height:6, active:true,
+    });
+    shootCooldown=18;
+  }
+
+  /* Pulo (com pulo duplo) */
+  if(jumpJust&&player.jumpsLeft>0){
+    player.vy = player.jumpsLeft<player.maxJumps ? player.jumpForce*0.85 : player.jumpForce;
+    player.jumpsLeft--; player.grounded=false;
+  }
+
+  /* Gravidade + vertical */
+  player.vy+=player.gravity; player.y+=player.vy;
+
+  /* Colisão vertical */
+  player.grounded=false;
+  for(const p of platforms){
+    if(player.x<p.x+p.width&&player.x+player.width>p.x&&
+       player.y<p.y+p.height&&player.y+player.height>p.y){
+      if(player.vy>0&&player.y+player.height-player.vy<=p.y+2){
+        player.y=p.y-player.height; player.vy=0; player.grounded=true;
+      } else if(player.vy<0&&player.y-player.vy>=p.y+p.height-2){
+        player.y=p.y+p.height; player.vy=0;
+      }
+    }
+  }
+  if(player.grounded) player.jumpsLeft=player.maxJumps;
+
+  /* Colisão horizontal */
+  player.x+=player.vx;
+  for(const p of platforms){
+    if(player.x<p.x+p.width&&player.x+player.width>p.x&&
+       player.y<p.y+p.height&&player.y+player.height>p.y){
+      if(player.vx>0) player.x=p.x-player.width;
+      else if(player.vx<0) player.x=p.x+p.width;
+      player.vx=0;
+    }
+  }
+
+  /* Limites */
+  if(player.x<0) player.x=0;
+  if(player.x>LW-player.width) player.x=LW-player.width;
+
+  /* Camera */
+  cameraX=player.x-canvas.width/3;
+  if(cameraX<0) cameraX=0;
+  if(cameraX>LW-canvas.width) cameraX=LW-canvas.width;
+
+  /* Cair */
+  if(player.y>canvas.height){
+    if(godMode){ player.x=50;player.y=300;player.vy=0;cameraX=0;player.jumpsLeft=player.maxJumps; }
+    else{ loseLife(); if(gameState==='gameover') return; }
+  }
+
+  /* ── Balas do jogador ── */
+  for(let i=playerBullets.length-1;i>=0;i--){
+    const b=playerBullets[i];
+    b.x+=b.vx;
+    if(b.x<-20||b.x>LW+20){ playerBullets.splice(i,1); continue; }
+
+    // acerta inimigo
+    let hit=false;
+    for(let j=enemies.length-1;j>=0;j--){
+      const e=enemies[j];
+      if(b.x<e.x+e.width&&b.x+b.width>e.x&&b.y<e.y+e.height&&b.y+b.height>e.y){
+        enemies.splice(j,1); playerBullets.splice(i,1); hit=true; break;
+      }
+    }
+    if(hit) continue;
+
+    // acerta boss
+    if(boss&&boss.hp>0&&boss.invincible<=0){
+      if(b.x<boss.x+boss.width&&b.x+b.width>boss.x&&
+         b.y<boss.y+boss.height&&b.y+b.height>boss.y){
+        boss.hp--; boss.invincible=25; playerBullets.splice(i,1);
+        if(boss.hp<=0){ boss=null; gameState='bossDefeated'; postBossTimer=90; }
+        continue;
+      }
+    }
+  }
+
+  /* ── Balas dos inimigos ── */
+  for(let i=enemyBullets.length-1;i>=0;i--){
+    const b=enemyBullets[i];
+    if(!b) continue;
+    b.x+=b.vx; if(b.vy) b.y+=b.vy;
+    if(b.x<-20||b.x>LW+20||b.y>canvas.height){ enemyBullets.splice(i,1); continue; }
+    if(!godMode&&player.invincible<=0){
+      if(b.x<player.x+player.width&&b.x+b.width>player.x&&
+         b.y<player.y+player.height&&b.y+b.height>player.y){
+        enemyBullets.splice(i,1);
+        loseLife();
+        break;
+      }
+    }
+  }
+
+  /* ── Inimigos ── */
+  for(let i=enemies.length-1;i>=0;i--){
+    const e=enemies[i];
+
+    if(e.type==='walker'){
+      e.x+=e.vx;
+      if(e.x<=0||e.x>=LW-e.width||!isGrounded(e)) e.vx=-e.vx;
+
+    } else if(e.type==='flyer'){
+      e.x+=e.vx;
+      e.y=e.baseY+Math.sin(Date.now()/500)*e.amplitude;
+      if(e.x<=0||e.x>=LW-e.width) e.vx=-e.vx;
+
+    } else if(e.type==='shooter'){
+      e.x+=e.vx;
+      if(e.x<=0||e.x>=LW-e.width||!isGrounded(e)) e.vx=-e.vx;
+      e.facing=player.x>e.x?1:-1;
+      if(e.shootCooldown<=0){
+        if(Math.abs(player.x-e.x)<650){
+          enemyBullets.push({
+            x:e.x+(e.facing===1?e.width:-10),
+            y:e.y+e.height/2-3,
+            vx:5*e.facing, vy:0, width:10,height:5, isBoss:false,
+          });
+          e.shootCooldown=e.shootInterval;
+        } else { e.shootCooldown=30; }
+      } else { e.shootCooldown--; }
+    }
+
+    /* colisão jogador-inimigo */
+    if(player.x<e.x+e.width&&player.x+player.width>e.x&&
+       player.y<e.y+e.height&&player.y+player.height>e.y){
+      if(player.vy>0&&player.y+player.height-player.vy<=e.y+10){
+        enemies.splice(i,1); player.vy=player.jumpForce*1.3;
+      } else if(player.dashing){
+        enemies.splice(i,1);
+      } else if(!godMode&&player.invincible<=0){
+        loseLife();
+        break;
+      }
+    }
+  }
+
+  /* ── Boss ── */
+  if(boss&&boss.hp>0){
+    if(boss.invincible>0) boss.invincible--;
+    if(boss.attackCooldown>0) boss.attackCooldown--;
+
+    boss.x+=boss.vx;
+    if(boss.x<=1650||boss.x>=LW-boss.width-50) boss.vx=-boss.vx;
+
+    if(boss.attackCooldown<=0){
+      fireBossShot(boss);
+      boss.attackCooldown = boss.hp<=Math.floor(boss.maxHp/2)
+        ? Math.floor(boss.shootInterval*0.6)
+        : boss.shootInterval;
+    }
+
+    if(player.x<boss.x+boss.width&&player.x+player.width>boss.x&&
+       player.y<boss.y+boss.height&&player.y+player.height>boss.y){
+      if(player.vy>0&&player.y+player.height-player.vy<=boss.y+15&&boss.invincible<=0){
+        boss.hp--; boss.invincible=35;
+        player.vy=player.jumpForce*1.4; player.y=boss.y-player.height;
+        if(boss.hp<=0){ boss=null; gameState='bossDefeated'; postBossTimer=90; }
+      } else if(player.dashing&&boss.invincible<=0){
+        boss.hp--; boss.invincible=35; player.vx=-player.facing*8;
+        if(boss.hp<=0){ boss=null; gameState='bossDefeated'; postBossTimer=90; }
+      } else if(!godMode&&player.invincible<=0&&boss.invincible<=0){
+        loseLife(); if(gameState==='gameover') return;
+      }
+    }
+  }
+
+  /* ── Moedas ── */
+  for(const c of coins){
+    if(!c.collected&&player.x<c.x+15&&player.x+player.width>c.x&&
+       player.y<c.y+15&&player.y+player.height>c.y){
+      c.collected=true; totalCoins++; updateDisplay();
+    }
+  }
+
+  /* ── Bandeira ── */
+  const bossAlive=boss&&boss.hp>0&&(currentLevel===5||currentLevel===10);
+  if(!bossAlive&&
+     player.x<flag.x+flag.width&&player.x+player.width>flag.x&&
+     player.y<flag.y+flag.height&&player.y+player.height>flag.y&&
+     totalCoins>=COINS_PER_LEVEL){
+    gameState='win';
+  }
+
+  /* Boss derrotado: Enter avança sem precisar da bandeira */
+  if(gameState==='bossDefeated'&&postBossTimer<=0&&
+     (keys['Enter']||gp?.buttons[0]?.pressed)){
+    advanceLevel();
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   PRÉDIOS (PRÉ-GERADO UMA VEZ)
+══════════════════════════════════════════════════════ */
+let _bld=null;
+function getBuildings(){
+  if(_bld) return _bld;
+  const raw=[
+    [0,140,220],[160,100,270],[280,120,180],[430,90,240],
+    [550,150,200],[720,110,260],[860,130,190],[1020,95,280],
+    [1140,140,210],[1310,100,250],[1440,120,170],[1590,90,230],
+    [1710,150,200],[1890,110,270],[2030,130,180],[2190,100,240],[2320,120,210],
+  ];
+  _bld=raw.map(([bx,bw,bh],bi)=>{
+    const wins=[];
+    for(let ox=8;ox<bw-18;ox+=20){
+      for(let oy=8;oy<bh-28;oy+=20){
+        const seed=(bi*997+ox*31+oy*7)%100;
+        wins.push({ox,oy,lit:seed<55});
+      }
+    }
+    return{x:bx,w:bw,h:bh,windows:wins};
+  });
+  return _bld;
+}
+
+/* ══════════════════════════════════════════════════════
+   DRAW — BACKGROUND
+══════════════════════════════════════════════════════ */
+function drawBackground(){
+  const GY=370;
+  const gr=ctx.createLinearGradient(cameraX,0,cameraX,canvas.height);
+  if(currentLevel===5){
+    gr.addColorStop(0,'#1a0d0d'); gr.addColorStop(1,'#200f10');
+  } else if(currentLevel===10){
+    gr.addColorStop(0,'#0a0008'); gr.addColorStop(1,'#110011');
+  } else if(currentLevel>=6){
+    gr.addColorStop(0,'#08080f'); gr.addColorStop(1,'#0e0c18');
+  } else {
+    gr.addColorStop(0,'#0b1a2e'); gr.addColorStop(1,'#162030');
+  }
+  ctx.fillStyle=gr; ctx.fillRect(cameraX,0,canvas.width,canvas.height);
+
+  /* Prédios */
+  const blds=getBuildings();
+  const bc=currentLevel>=6?'#080c10':'#0d1520';
+  const wc1='#ffd16640', wc2='#5de4ff25';
+  for(const b of blds){
+    ctx.fillStyle=bc;
+    ctx.fillRect(b.x,GY-b.h,b.w,b.h);
+    for(const w of b.windows){
+      if(w.lit){
+        ctx.fillStyle=(b.x+w.oy)%2===0?wc1:wc2;
+        ctx.fillRect(b.x+w.ox,GY-b.h+w.oy,10,10);
+      }
+    }
+  }
+
+  /* Postes (fases 1-5) */
+  if(currentLevel<=5){
+    for(let lx=280;lx<LW;lx+=350){
+      ctx.fillStyle='#555';
+      ctx.fillRect(lx,GY-65,4,65);
+      ctx.fillStyle='#ffd166';
+      ctx.fillRect(lx-16,GY-68,32,8);
+      const gl=ctx.createRadialGradient(lx+2,GY-60,0,lx+2,GY-60,45);
+      gl.addColorStop(0,'rgba(255,209,102,0.13)');
+      gl.addColorStop(1,'rgba(255,209,102,0)');
+      ctx.fillStyle=gl;
+      ctx.beginPath(); ctx.arc(lx+2,GY-60,45,0,Math.PI*2); ctx.fill();
+    }
+  } else {
+    /* Dutos / canos para fases underground */
+    for(let px=150;px<LW;px+=250){
+      ctx.fillStyle='#222232';
+      ctx.fillRect(px,GY-38,12,38);
+      ctx.fillStyle='#2a2a40';
+      ctx.fillRect(px-8,GY-42,28,6);
+    }
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   DRAW — MUNDO
+══════════════════════════════════════════════════════ */
+function drawPlatforms(){
+  for(const p of platforms){
+    ctx.fillStyle=p.color; ctx.fillRect(p.x,p.y,p.width,p.height);
+    ctx.strokeStyle=p.stroke||'#3d3d50'; ctx.lineWidth=1;
+    for(let i=0;i<p.width;i+=24) ctx.strokeRect(p.x+i,p.y,24,p.height);
+  }
+}
+
+function drawCoins(){
+  const t=Date.now();
+  for(const c of coins){
+    if(c.collected) continue;
+    const bob=Math.sin(t/400+c.x)*2;
+    ctx.fillStyle='#FFD700';
+    ctx.beginPath(); ctx.arc(c.x+7,c.y+7+bob,8,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#FFA500'; ctx.lineWidth=2; ctx.stroke();
+    ctx.fillStyle='#FFF8DC';
+    ctx.beginPath(); ctx.arc(c.x+5,c.y+4+bob,3,0,Math.PI*2); ctx.fill();
+  }
+}
+
+function drawBullets(){
+  for(const b of playerBullets){
+    ctx.fillStyle='#f1c40f'; ctx.fillRect(b.x,b.y,b.width,b.height);
+    ctx.fillStyle='#fff';    ctx.fillRect(b.x+2,b.y+1,4,b.height-2);
+  }
+  for(const b of enemyBullets){
+    ctx.fillStyle=b.isBoss?'#e74c3c':'#e67e22';
+    ctx.fillRect(b.x,b.y,b.width,b.height);
+    ctx.fillStyle='#ff9900'; ctx.fillRect(b.x+2,b.y+1,3,b.height-2);
+  }
+}
+
+function drawEnemies(){
+  for(const e of enemies){
+    if(e.type==='walker'){
+      ctx.fillStyle=e.color; ctx.fillRect(e.x,e.y,e.width,e.height);
+      ctx.fillStyle='white';
+      ctx.fillRect(e.x+5,e.y+5,8,8); ctx.fillRect(e.x+17,e.y+5,8,8);
+      ctx.fillStyle='black';
+      ctx.fillRect(e.x+7,e.y+7,4,4); ctx.fillRect(e.x+19,e.y+7,4,4);
+
+    } else if(e.type==='flyer'){
+      ctx.fillStyle=e.color; ctx.fillRect(e.x,e.y,e.width,e.height);
+      ctx.fillStyle='#f39c12';
+      ctx.beginPath(); ctx.moveTo(e.x-5,e.y+10);ctx.lineTo(e.x-15,e.y);ctx.lineTo(e.x-5,e.y+20); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(e.x+e.width+5,e.y+10);ctx.lineTo(e.x+e.width+15,e.y);ctx.lineTo(e.x+e.width+5,e.y+20); ctx.fill();
+      ctx.fillStyle='white';
+      ctx.fillRect(e.x+5,e.y+8,8,8); ctx.fillRect(e.x+17,e.y+8,8,8);
+      ctx.fillStyle='black';
+      ctx.fillRect(e.x+7,e.y+10,4,4); ctx.fillRect(e.x+19,e.y+10,4,4);
+
+    } else if(e.type==='shooter'){
+      ctx.fillStyle=e.color; ctx.fillRect(e.x,e.y,e.width,e.height);
+      /* chapéu */
+      ctx.fillStyle='#5b2c6f';
+      ctx.fillRect(e.x-2,e.y-7,e.width+4,8);
+      ctx.fillRect(e.x+4,e.y-14,e.width-8,9);
+      /* arma */
+      ctx.fillStyle='#444';
+      if(e.facing===1){
+        ctx.fillRect(e.x+e.width,e.y+12,12,6);
+        ctx.fillRect(e.x+e.width+10,e.y+10,3,10);
+      } else {
+        ctx.fillRect(e.x-12,e.y+12,12,6);
+        ctx.fillRect(e.x-13,e.y+10,3,10);
+      }
+      /* olhos vermelhos */
+      ctx.fillStyle='white';
+      ctx.fillRect(e.x+5,e.y+5,8,8); ctx.fillRect(e.x+19,e.y+5,7,8);
+      ctx.fillStyle='#e74c3c';
+      ctx.fillRect(e.x+7,e.y+7,4,4); ctx.fillRect(e.x+21,e.y+7,3,4);
+    }
+  }
+}
+
+function drawBoss(){
+  if(!boss||boss.hp<=0) return;
+  const flash=boss.invincible>0&&boss.invincible%6<3;
+  const bx=boss.x, by=boss.y;
+
+  if(boss.type==='boss1'){
+    /* Corpo */
+    ctx.fillStyle=flash?'#f1c40f':boss.color;
+    ctx.fillRect(bx,by,boss.width,boss.height);
+    /* Chapéu fedora */
+    ctx.fillStyle=flash?'#f39c12':'#7b241c';
+    ctx.fillRect(bx-5,by-10,boss.width+10,12);
+    ctx.fillRect(bx+5,by-26,boss.width-10,18);
+    /* Cicatriz */
+    if(!flash){
+      ctx.strokeStyle='#922b21'; ctx.lineWidth=2.5;
+      ctx.beginPath(); ctx.moveTo(bx+15,by+10); ctx.lineTo(bx+22,by+24); ctx.stroke();
+    }
+    /* Olhos */
+    ctx.fillStyle='white';
+    ctx.fillRect(bx+10,by+12,10,10); ctx.fillRect(bx+30,by+12,10,10);
+    ctx.fillStyle='#1a1a1a';
+    ctx.fillRect(bx+13,by+15,5,5); ctx.fillRect(bx+33,by+15,5,5);
+    /* Gravata */
+    if(!flash){
+      ctx.fillStyle='#7b241c';
+      ctx.fillRect(bx+20,by+30,10,boss.height-30);
+    }
+  } else {
+    /* Don Diamante: terno preto com listras douradas */
+    ctx.fillStyle=flash?'#f1c40f':'#1a0d05';
+    ctx.fillRect(bx,by,boss.width,boss.height);
+    if(!flash){
+      ctx.strokeStyle='#8B6914'; ctx.lineWidth=1.5;
+      for(let sx=bx+7;sx<bx+boss.width-5;sx+=10){
+        ctx.beginPath(); ctx.moveTo(sx,by); ctx.lineTo(sx,by+boss.height); ctx.stroke();
+      }
+    }
+    /* Fedora preto */
+    ctx.fillStyle=flash?'#888':'#0d0a05';
+    ctx.fillRect(bx-8,by-12,boss.width+16,13);
+    ctx.fillRect(bx+5,by-28,boss.width-10,18);
+    ctx.fillStyle='#8B6914';
+    ctx.fillRect(bx-5,by-14,boss.width+10,4);
+    /* Olhos vermelhos grandes */
+    ctx.fillStyle='#e74c3c';
+    ctx.fillRect(bx+12,by+14,12,12); ctx.fillRect(bx+38,by+14,12,12);
+    ctx.fillStyle='black';
+    ctx.fillRect(bx+15,by+17,6,6); ctx.fillRect(bx+41,by+17,6,6);
+    /* Gravata dourada */
+    if(!flash){
+      ctx.fillStyle='#8B6914';
+      ctx.beginPath();
+      ctx.moveTo(bx+26,by+30); ctx.lineTo(bx+20,by+boss.height-10);
+      ctx.lineTo(bx+32,by+boss.height-10); ctx.lineTo(bx+36,by+30);
+      ctx.closePath(); ctx.fill();
+    }
+  }
+
+  /* Barra de HP */
+  const bw2=boss.width+20;
+  ctx.fillStyle='#e74c3c'; ctx.fillRect(bx-10,by-22,bw2,10);
+  ctx.fillStyle='#2ecc71'; ctx.fillRect(bx-10,by-22,bw2*(boss.hp/boss.maxHp),10);
+  ctx.strokeStyle='white'; ctx.lineWidth=1; ctx.strokeRect(bx-10,by-22,bw2,10);
+
+  /* Nome */
+  ctx.save(); ctx.translate(bx+boss.width/2,by-32);
+  ctx.fillStyle='#f1c40f'; ctx.font='bold 11px Arial'; ctx.textAlign='center';
+  ctx.fillText(boss.name,0,0); ctx.restore();
+}
+
+function drawPlayer(){
+  const vis=player.invincible%10<5||player.invincible<=0||godMode;
+  if(!vis) return;
+  const px=player.x, py=player.y;
+
+  if(godMode){
+    ctx.strokeStyle='#f1c40f'; ctx.lineWidth=3;
+    ctx.strokeRect(px-3,py-3,player.width+6,player.height+6);
+  }
+
+  /* Corpo (terno) */
+  ctx.fillStyle=godMode?'#f1c40f':(player.dashing?'#5de4ff':player.color);
+  ctx.fillRect(px,py,player.width,player.height);
+
+  if(!godMode){
+    /* Camisa branca e gravata */
+    ctx.fillStyle='#ecf0f1'; ctx.fillRect(px+10,py+5,10,18);
+    ctx.fillStyle='#e74c3c';
+    ctx.beginPath();
+    ctx.moveTo(px+12,py+5); ctx.lineTo(px+10,py+22);
+    ctx.lineTo(px+18,py+22); ctx.lineTo(px+18,py+5); ctx.fill();
+  }
+
+  /* Chapéu */
+  ctx.fillStyle=godMode?'#f39c12':'#0d1b2a';
+  ctx.fillRect(px-2,py-8,player.width+4,10);
+  ctx.fillRect(px+3,py-16,player.width-6,10);
+
+  /* Olho */
+  ctx.fillStyle='white';
+  if(player.facing===1) ctx.fillRect(px+20,py+8,8,8);
+  else                  ctx.fillRect(px+2,py+8,8,8);
+  ctx.fillStyle='#1a1a1a';
+  if(player.facing===1) ctx.fillRect(px+22,py+10,4,4);
+  else                  ctx.fillRect(px+4,py+10,4,4);
+
+  /* Arma (exceto no dash / godMode) */
+  if(!player.dashing&&!godMode){
+    ctx.fillStyle='#444';
+    if(player.facing===1) ctx.fillRect(px+player.width,py+18,9,4);
+    else                  ctx.fillRect(px-9,py+18,9,4);
+  }
+
+  /* Rastro do dash */
+  if(player.dashing){
+    ctx.fillStyle='rgba(93,228,255,0.3)';
+    ctx.fillRect(px-player.facing*22,py+5,22,player.height-10);
+  }
+}
+
+function drawFlag(){
+  const bossAlive=boss&&boss.hp>0&&(currentLevel===5||currentLevel===10);
+  if(bossAlive) return;
+  ctx.fillStyle='#8B4513'; ctx.fillRect(flag.x,flag.y,5,flag.height);
+  const fc=['#e74c3c','#3498db','#f1c40f','#9b59b6','#e67e22',
+             '#1abc9c','#e74c3c','#3498db','#f1c40f','#9b59b6'];
+  ctx.fillStyle=fc[currentLevel-1]||'#e74c3c';
+  ctx.beginPath();
+  ctx.moveTo(flag.x+5,flag.y); ctx.lineTo(flag.x+30,flag.y+15); ctx.lineTo(flag.x+5,flag.y+30);
+  ctx.fill();
+}
+
+/* ══════════════════════════════════════════════════════
+   DRAW — MENU
+══════════════════════════════════════════════════════ */
+function drawMenuScreen(){
+  const g=ctx.createLinearGradient(0,0,0,canvas.height);
+  g.addColorStop(0,'#0b1a2e'); g.addColorStop(1,'#0d0a1a');
+  ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  /* Skyline */
+  ctx.fillStyle='#0d1520';
+  [[0,160,120],[140,180,80],[240,150,140],[400,200,70],
+   [490,130,90],[600,190,100],[720,160,110],[850,140,80]].forEach(([x,h,w])=>{
+    ctx.fillRect(x,canvas.height-30-h,w,h);
+  });
+
+  /* Título */
+  ctx.textAlign='center';
+  ctx.fillStyle='#e74c3c'; ctx.font='bold 20px Arial';
+  ctx.fillText('SUPER AVENTUREIRO 2',canvas.width/2,48);
+  ctx.fillStyle='#f1c40f'; ctx.font='bold 28px Arial';
+  ctx.fillText('✦  AGENT EDITION  ✦',canvas.width/2,82);
+
+  /* Painel de história */
+  ctx.fillStyle='rgba(0,0,0,0.55)';
+  ctx.fillRect(50,100,canvas.width-100,130);
+  ctx.fillStyle='#bdc3c7'; ctx.font='13px Arial';
+  ctx.fillText('Depois de suas férias na praia, alguém roubou seu',canvas.width/2,125);
+  ctx.fillStyle='#f1c40f'; ctx.font='bold 16px Arial';
+  ctx.fillText('💎  DIAMANTE MAIS PRECIOSO  💎',canvas.width/2,150);
+  ctx.fillStyle='#bdc3c7'; ctx.font='13px Arial';
+  ctx.fillText('A máfia está por trás de tudo. Não existe negociação.',canvas.width/2,172);
+  ctx.fillText('Vista o terno, carregue a arma e vire o agente secreto',canvas.width/2,192);
+  ctx.fillStyle='#f1c40f'; ctx.font='bold 13px Arial';
+  ctx.fillText('que vai varrer a máfia da cidade e recuperar o que é seu.',canvas.width/2,212);
+
+  /* Destaques do jogo */
+  ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.fillRect(50,242,canvas.width-100,48);
+  ctx.fillStyle='#5de4ff'; ctx.font='12px Arial';
+  ctx.fillText('Z / B = ATIRAR  ·  SHIFT / X = DASH  ·  2× PULO a partir da Missão 6',canvas.width/2,262);
+  ctx.fillStyle='#888'; ctx.font='11px Arial';
+  ctx.fillText('R+L ou LB+RB = MODO INVENCÍVEL   |   10 missões   |   2 bosses',canvas.width/2,282);
+
+  /* Pressione ENTER (piscando) */
+  if(Math.floor(Date.now()/500)%2===0){
+    ctx.fillStyle='#f1c40f'; ctx.font='bold 17px Arial';
+    ctx.fillText('▶  PRESSIONE ENTER / A PARA COMEÇAR  ◀',canvas.width/2,358);
+  }
+  ctx.textAlign='left';
+}
+
+/* ══════════════════════════════════════════════════════
+   DRAW — OVERLAYS (espaço de tela)
+══════════════════════════════════════════════════════ */
+function drawOverlays(){
+  ctx.textAlign='center';
+
+  /* Pulo duplo desbloqueado */
+  if(doubleJumpMsgTimer>0){
+    const a=Math.min(1,doubleJumpMsgTimer/40);
+    ctx.fillStyle=`rgba(0,0,0,${0.65*a})`;
+    ctx.fillRect(170,8,canvas.width-340,50);
+    ctx.fillStyle=`rgba(93,228,255,${a})`;
+    ctx.font='bold 19px Arial';
+    ctx.fillText('✦  PULO DUPLO DESBLOQUEADO!  ✦',canvas.width/2,40);
+  }
+
+  if(gameState==='gameover'){
+    ctx.fillStyle='rgba(0,0,0,0.78)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='#e74c3c'; ctx.font='38px Arial';
+    ctx.fillText('MISSÃO FALHOU',canvas.width/2,canvas.height/2-22);
+    ctx.fillStyle='white'; ctx.font='17px Arial';
+    ctx.fillText('Pressione ENTER ou 🎮 A para recomeçar',canvas.width/2,canvas.height/2+28);
+
+  } else if(gameState==='win'){
+    ctx.fillStyle='rgba(0,0,0,0.78)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='#f1c40f'; ctx.font='34px Arial';
+    ctx.fillText(
+      currentLevel<10?`MISSÃO ${currentLevel} COMPLETA!`:'🏆 DIAMANTE RECUPERADO!',
+      canvas.width/2, canvas.height/2-22
+    );
+    ctx.fillStyle='white'; ctx.font='17px Arial';
+    ctx.fillText(
+      currentLevel<10?'Pressione ENTER para a próxima missão':'Pressione ENTER para jogar novamente',
+      canvas.width/2, canvas.height/2+28
+    );
+
+  } else if(gameState==='bossDefeated'){
+    ctx.fillStyle='rgba(0,0,0,0.72)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='#2ecc71'; ctx.font='32px Arial';
+    ctx.fillText('BOSS ELIMINADO!',canvas.width/2,canvas.height/2-45);
+    ctx.fillStyle='#f1c40f'; ctx.font='17px Arial';
+    ctx.fillText(
+      currentLevel===5?'💀 Tenente Scarface neutralizado!':'💎 Don Diamante caiu!',
+      canvas.width/2, canvas.height/2-10
+    );
+    ctx.fillStyle='white'; ctx.font='14px Arial';
+    ctx.fillText('Colete as moedas e vá até a bandeira',canvas.width/2,canvas.height/2+20);
+    if(postBossTimer<=0&&Math.floor(Date.now()/600)%2===0){
+      ctx.fillStyle='#f1c40f'; ctx.font='13px Arial';
+      ctx.fillText('(ou ENTER / A para avançar diretamente)',canvas.width/2,canvas.height/2+42);
+    }
+  }
+
+  ctx.textAlign='left';
+}
+
+/* ══════════════════════════════════════════════════════
+   DRAW PRINCIPAL
+══════════════════════════════════════════════════════ */
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  if(gameState==='menu'){ drawMenuScreen(); return; }
+
+  ctx.save();
+  ctx.translate(-cameraX,0);
+  drawBackground();
+  drawPlatforms();
+  drawCoins();
+  drawBullets();
+  drawEnemies();
+  drawBoss();
+  drawFlag();
+  drawPlayer();
+  ctx.restore();
+
+  drawOverlays();
+}
+
+/* ══════════════════════════════════════════════════════
+   GAME LOOP
+══════════════════════════════════════════════════════ */
+function gameLoop(){ update(); draw(); requestAnimationFrame(gameLoop); }
+
+loadLevel(1);
+gameLoop();
+</script>
+</body>
+</html>

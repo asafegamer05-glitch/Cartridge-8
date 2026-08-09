@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Zombie Rush - Sobrevivência na Floresta</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    background: #050a06; overflow: hidden;
+    font-family: 'Courier New', Courier, monospace;
+  }
+  canvas { display: block; width: 100vw; height: 100vh; background: #050a06; }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script>
+(function() {
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+
+  let W = window.innerWidth, H = window.innerHeight;
+
+  // ---------- Áreas e Tamanho do Mapa ----------
+  let currentArea = 'home'; // 'home' | 'gas_station' | 'military_base'
+  let mapW = W, mapH = H;
+  let cameraX = 0, cameraY = 0;
+
+  function setAreaMapSize() {
+    if (currentArea === 'home') {
+      mapW = W; mapH = H;
+    } else {
+      mapW = W * 2; mapH = H * 2; // 4x a área total!
+    }
+  }
+
+  function resize() {
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W; canvas.height = H;
+    layoutHouse();
+    setAreaMapSize();
+  }
+
+  // ---------- Estado geral e Modos de Jogo ----------
+  let gameState = 'menu'; // 'menu' | 'playing' | 'win' | 'gameover'
+  let gameMode = 'normal'; // 'normal' | 'hard' | 'endless'
+  let menuIndex = 0;
+
+  const MODES = [
+    { key: 'normal', name: 'MODO NORMAL', days: 3, desc: 'Sobreviva por 3 dias e noites na floresta.' },
+    { key: 'hard',   name: 'MODO DÍFICIL', days: 10, desc: 'Desafio extremo! 10 dias com zumbis mais agressivos.' },
+    { key: 'endless',name: 'MODO INFINITO', days: Infinity, desc: 'Sem limites! Sobreviva quantas noites conseguir.' },
+  ];
+
+  const DAY_DURATION = 30;
+  const NIGHT_DURATION = 60;
+  let dayIndex = 1;
+  let phase = 'day'; // 'day' | 'night'
+  let phaseTimer = DAY_DURATION;
+
+  let currency = 0;
+  const KILL_REWARD = 5; // 5 moedas por zumbi
+  const NIGHT_SURVIVE_BONUS = 100;
+
+  let godMode = false; // Admin cheat
+
+  // Menus overlays
+  let shopOpen = false;
+  let shopIndex = 0;
+  let shopMessage = '';
+  let shopMessageTimer = 0;
+  let shopNavCooldown = 0;
+
+  let travelMenuOpen = false;
+  let travelIndex = 0;
+
+  let adminMenuOpen = false;
+  let adminIndex = 0;
+
+  const house = { x: 0, y: 0, w: 0, h: 0 };
+  const WALL_T = 16;
+  const DOOR_HALF = 24;
+
+  function layoutHouse() {
+    house.w = Math.min(380, W * 0.42);
+    house.h = Math.min(380, H * 0.5);
+    house.x = W / 2 - house.w / 2;
+    house.y = H / 2 - house.h / 2;
+  }
+  layoutHouse();
+
+  // ---------- Entidades ----------
+  const player = {
+    x: 0, y: 0, radius: 16,
+    health: 100, maxHealth: 100,
+    speed: 4.0,
+    foodCount: 3,
+    hungerLevel: 100,
+    hungerDecayPerSec: 0.45 * 4, // 4x mais rápido!
+    starveDamagePerSec: 3,
+    lowHungerDamagePerSec: 0.7,
+    aimAngle: 0,
+  };
+
+  const generator = {
+    x: 0, y: 0, radius: 24,
+    health: 100, maxHealth: 100,
+    decayPerSec: 1.2 * 4 // 4x mais rápido!
+  };
+
+  const WEAPONS = [
+    { name: 'Pistola Caçadora', cooldown: 18, damage: 34, maxAmmo: 8,  cost: 0 },
+    { name: 'SMG Tática',       cooldown: 8,  damage: 38, maxAmmo: 24, cost: 250 },
+    { name: 'Rifle de Assalto', cooldown: 4,  damage: 48, maxAmmo: 36, cost: 500 },
+  ];
+  let weaponTier = 0;
+
+  function getMaxAmmo() { return WEAPONS[weaponTier].maxAmmo; }
+
+  let bullets = [];
+  let enemyBullets = [];
+  const BULLET_SPEED = 9;
+  let bulletCooldown = 0;
+  let ammo = getMaxAmmo();
+  let reloading = false, reloadTimer = 0;
+  const RELOAD_TIME = 45;
+
+  let zombies = [];
+  const ZOMBIE_CONTACT_DMG_PER_SEC = 9;
+  const ZOMBIE_GEN_DMG_PER_SEC = 10;
+  const ZOMBIE_TURRET_DMG_PER_SEC = 12;
+  let zombieSpawnTimer = 0;
+
+  let foods = [];
+  const FOOD_RADIUS = 12;
+  const MAX_FOOD_ITEMS = 4;
+  let foodSpawnTimer = 0;
+  const FOOD_SPAWN_DELAY = 220;
+
+  const TURRET_COST = 150;
+  const TURRET_RANGE = 190;
+  const TURRET_DAMAGE = 20;
+  const TURRET_COOLDOWN = 40;
+  const TURRET_MAX_HP = 80;
+  let turrets = [];
+
+  let repairCooldown = 0;
+  const REPAIR_COOLDOWN_FRAMES = 30;
+
+  // ---------- Input ----------
+  const keys = { w:false, a:false, s:false, d:false, r:false, e:false, f:false };
+  let gamepadConnected = false;
+  let gamepadButtons = {};
+  let prevGamepadButtons = {};
+  let gamepadAxes = [0,0,0,0];
+
+  let mousePos = { x: 0, y: 0 };
+  let mouseDown = false;
+  let mouseMoved = false;
+
+  function getTurretSlots() {
+    const m = 34;
+    return [
+      { x: house.x - m, y: house.y - m },
+      { x: house.x + house.w + m, y: house.y - m },
+      { x: house.x - m, y: house.y + house.h + m },
+      { x: house.x + house.w + m, y: house.y + house.h + m },
+    ];
+  }
+
+  function clamp(v, mn, mx) { return Math.min(mx, Math.max(mn, v)); }
+  function distance(x1,y1,x2,y2) { return Math.sqrt((x2-x1)**2 + (y2-y1)**2); }
+
+  function isInsideHouse(x, y, margin = 0) {
+    if (currentArea !== 'home') return false;
+    return (x > house.x + margin && x < house.x + house.w - margin &&
+            y > house.y + margin && y < house.y + house.h - margin);
+  }
+
+  function circleRectCollide(cx, cy, cr, rx, ry, rw, rh) {
+    const closestX = clamp(cx, rx, rx + rw);
+    const closestY = clamp(cy, ry, ry + rh);
+    const dx = cx - closestX, dy = cy - closestY;
+    return (dx*dx + dy*dy) < (cr*cr);
+  }
+
+  function getWallSegments() {
+    if (currentArea === 'home') {
+      const doorCenterX = house.x + house.w / 2;
+      const bottomY = house.y + house.h - WALL_T / 2;
+      const leftEdge = house.x - WALL_T / 2;
+      const rightEdge = house.x + house.w + WALL_T / 2;
+      return [
+        { x: leftEdge, y: house.y - WALL_T/2, w: house.w + WALL_T, h: WALL_T },
+        { x: leftEdge, y: house.y - WALL_T/2, w: WALL_T, h: house.h + WALL_T },
+        { x: house.x + house.w - WALL_T/2, y: house.y - WALL_T/2, w: WALL_T, h: house.h + WALL_T },
+        { x: leftEdge, y: bottomY, w: (doorCenterX - DOOR_HALF) - leftEdge, h: WALL_T },
+        { x: doorCenterX + DOOR_HALF, y: bottomY, w: rightEdge - (doorCenterX + DOOR_HALF), h: WALL_T },
+      ];
+    } else if (currentArea === 'gas_station') {
+      const cx = mapW / 2, cy = mapH / 2;
+      const bw = 440, bh = 300, WT = 16, doorG = 52;
+      const bx = cx - bw/2, by = cy - bh/2;
+      return [
+        { x: bx, y: by, w: bw, h: WT }, // Norte
+        { x: bx, y: by, w: WT, h: bh }, // Oeste
+        { x: bx + bw - WT, y: by, w: WT, h: bh }, // Leste
+        { x: bx, y: by + bh - WT, w: bw/2 - doorG/2, h: WT }, // Sul Esquerda
+        { x: bx + bw/2 + doorG/2, y: by + bh - WT, w: bw/2 - doorG/2, h: WT }, // Sul Direita (Porta)
+
+        // Divisória Interna Vertical
+        { x: bx + 260, y: by, w: WT, h: 90 },
+        { x: bx + 260, y: by + 150, w: WT, h: bh - 150 },
+
+        // Divisória Interna Horizontal
+        { x: bx + 260, y: by + 150 - WT/2, w: 80, h: WT },
+        { x: bx + 390, y: by + 150 - WT/2, w: 50, h: WT },
+      ];
+    } else if (currentArea === 'military_base') {
+      const cx = mapW / 2, cy = mapH / 2;
+      const bw = 560, bh = 380, WT = 16, doorG = 54;
+      const bx = cx - bw/2, by = cy - bh/2;
+      return [
+        { x: bx, y: by, w: bw, h: WT }, // Norte
+        { x: bx, y: by, w: WT, h: bh }, // Oeste
+        { x: bx + bw - WT, y: by, w: WT, h: bh }, // Leste
+        { x: bx, y: by + bh - WT, w: bw/2 - doorG/2, h: WT }, // Sul Esquerda
+        { x: bx + bw/2 + doorG/2, y: by + bh - WT, w: bw/2 - doorG/2, h: WT }, // Sul Direita (Porta)
+
+        // Corredor Central Esquerda
+        { x: bx + 210, y: by, w: WT, h: 70 },
+        { x: bx + 210, y: by + 130, w: WT, h: 100 },
+        { x: bx + 210, y: by + 280, w: WT, h: bh - 280 },
+
+        // Corredor Central Direita
+        { x: bx + 330, y: by, w: WT, h: 70 },
+        { x: bx + 330, y: by + 130, w: WT, h: 100 },
+        { x: bx + 330, y: by + 280, w: WT, h: bh - 280 },
+
+        // Divisória Horizontal Esquerda
+        { x: bx, y: by + 190 - WT/2, w: 210, h: WT },
+
+        // Divisória Horizontal Direita
+        { x: bx + 330, y: by + 190 - WT/2, w: 230, h: WT },
+      ];
+    }
+  }
+
+  function isBlockedByWalls(x, y, r) {
+    const segs = getWallSegments();
+    for (let i = 0; i < segs.length; i++) {
+      if (circleRectCollide(x, y, r, segs[i].x, segs[i].y, segs[i].w, segs[i].h)) return true;
+    }
+    return false;
+  }
+
+  function moveWithWallCollision(entity, dx, dy) {
+    const newX = entity.x + dx, newY = entity.y + dy;
+    if (!isBlockedByWalls(newX, newY, entity.radius)) { entity.x = newX; entity.y = newY; }
+    else {
+      if (!isBlockedByWalls(newX, entity.y, entity.radius)) entity.x = newX;
+      if (!isBlockedByWalls(entity.x, newY, entity.radius)) entity.y = newY;
+    }
+    entity.x = clamp(entity.x, entity.radius, mapW - entity.radius);
+    entity.y = clamp(entity.y, entity.radius, mapH - entity.radius);
+  }
+
+  // ---------- Posicionamento da Caminhonete ----------
+  function getTruckPos() {
+    if (currentArea === 'home') {
+      return { x: house.x + house.w + 90, y: house.y + house.h/2 };
+    } else {
+      return { x: mapW - 120, y: mapH / 2 };
+    }
+  }
+
+  // ---------- Desbloqueio das Áreas ----------
+  function isGasStationUnlocked() {
+    if (gameMode === 'hard') return dayIndex >= 3;
+    return dayIndex >= 2; // Normal e Endless
+  }
+
+  function isMilitaryBaseUnlocked() {
+    if (gameMode === 'hard') return dayIndex >= 7;
+    return dayIndex >= 3; // Normal e Endless
+  }
+
+  function spawnZombie() {
+    let sx, sy, attempts = 0;
+    do {
+      const side = Math.floor(Math.random()*4);
+      if (side === 0) { sx = Math.random()*(mapW-80)+40; sy = Math.random()*60+15; }
+      else if (side === 1) { sx = Math.random()*(mapW-80)+40; sy = mapH - (Math.random()*60+15); }
+      else if (side === 2) { sx = Math.random()*60+15; sy = Math.random()*(mapH-80)+40; }
+      else { sx = mapW - (Math.random()*60+15); sy = Math.random()*(mapH-80)+40; }
+      attempts++;
+      if (attempts > 50) break;
+    } while (isInsideHouse(sx, sy, 25) || distance(sx, sy, player.x, player.y) < 160);
+
+    const isHard = gameMode === 'hard';
+    const isEndless = gameMode === 'endless';
+
+    // Tipos de Zumbi
+    let zType = 'standard';
+    const rand = Math.random();
+
+    if (currentArea === 'gas_station') {
+      if (rand < 0.4) zType = 'runner';
+      else if (rand < 0.7) zType = 'tank';
+    } else if (currentArea === 'military_base') {
+      if (rand < 0.3) zType = 'runner';
+      else if (rand < 0.55) zType = 'tank';
+      else if (rand < 0.75) zType = 'military_shooter';
+    }
+
+    let radius = 18;
+    let baseHp = 30;
+    let baseSpeed = 1.3;
+
+    if (zType === 'runner') {
+      radius = 15; baseHp = 20; baseSpeed = 2.6;
+    } else if (zType === 'tank') {
+      radius = 25; baseHp = 90; baseSpeed = 0.8;
+    } else if (zType === 'military_shooter') {
+      radius = 19; baseHp = 45; baseSpeed = 1.4;
+    }
+
+    const hpBonus = (dayIndex - 1) * (isHard ? 18 : isEndless ? 15 : 10);
+    const speedBonus = (dayIndex - 1) * (isHard ? 0.25 : isEndless ? 0.20 : 0.15);
+
+    zombies.push({
+      x: sx, y: sy,
+      type: zType,
+      radius: radius,
+      health: baseHp + hpBonus,
+      maxHealth: baseHp + hpBonus,
+      speed: baseSpeed + Math.random()*0.3 + speedBonus,
+      shootCooldown: Math.floor(Math.random()*80),
+    });
+  }
+
+  function spawnFood() {
+    if (foods.length >= MAX_FOOD_ITEMS) return;
+    // Se estiver na casa e o gerador estiver 0 HP, não spawna comida na casa!
+    if (currentArea === 'home' && generator.health <= 0) return;
+
+    let fx, fy, attempts = 0;
+    const cx = currentArea === 'home' ? generator.x : mapW/2;
+    const cy = currentArea === 'home' ? generator.y : mapH/2;
+    do {
+      const angle = Math.random()*Math.PI*2;
+      const dist = 90 + Math.random()*(currentArea==='home'?180:mapW*0.35);
+      fx = clamp(cx + Math.cos(angle)*dist, 30, mapW-30);
+      fy = clamp(cy + Math.sin(angle)*dist, 30, mapH-30);
+      attempts++;
+      if (attempts > 30) break;
+    } while (isInsideHouse(fx, fy, 20) || distance(fx, fy, player.x, player.y) < 50);
+    foods.push({ x: fx, y: fy, radius: FOOD_RADIUS });
+  }
+
+  function shootBullet(fromX, fromY, angle) {
+    if (ammo <= 0 || reloading) return;
+    const w = WEAPONS[weaponTier];
+    bullets.push({ x: fromX, y: fromY, vx: Math.cos(angle)*BULLET_SPEED, vy: Math.sin(angle)*BULLET_SPEED, radius: 5, damage: w.damage, active: true });
+    ammo--;
+    if (ammo <= 0) { reloading = true; reloadTimer = RELOAD_TIME; }
+  }
+
+  function reload() {
+    if (ammo === getMaxAmmo() || reloading) return;
+    reloading = true; reloadTimer = RELOAD_TIME;
+  }
+
+  function damagePlayer(amount) {
+    if (gameState !== 'playing' || godMode) return;
+    player.health = Math.max(0, player.health - amount);
+    if (player.health <= 0) { gameState = 'gameover'; }
+  }
+
+  function damageGenerator(amount) {
+    if (gameState !== 'playing' || currentArea !== 'home') return;
+    generator.health = Math.max(0, generator.health - amount);
+    // Gerador zerado NÃO dá game over mais! Apenas desativa loja e comida da casa.
+  }
+
+  function collectFood(f) {
+    player.foodCount++;
+    player.hungerLevel = Math.min(100, player.hungerLevel + 35);
+    player.health = Math.min(player.maxHealth, player.health + 10);
+    foods = foods.filter(x => x !== f);
+  }
+
+  function attemptRepair() {
+    if (repairCooldown > 0 || shopOpen || gameState !== 'playing' || currentArea !== 'home') return;
+    if (distance(player.x, player.y, generator.x, generator.y) > generator.radius + 32) return;
+    if (player.foodCount <= 0) return;
+    player.foodCount--;
+    generator.health = Math.min(generator.maxHealth, generator.health + 35);
+    player.hungerLevel = Math.min(100, player.hungerLevel + 10);
+    repairCooldown = REPAIR_COOLDOWN_FRAMES;
+  }
+
+  function flashMessage(msg) { shopMessage = msg; shopMessageTimer = 150; }
+
+  // ---------- Loja Expandida ----------
+  function getShopItems() {
+    const nextWeapon = WEAPONS[weaponTier + 1];
+    return [
+      { key: 'turret',     label: `Torreta de Guarda`,              price: TURRET_COST, available: turrets.length < 4 },
+      { key: 'weapon',     label: nextWeapon ? `Arma: ${nextWeapon.name}` : 'Arma Nível Máximo', price: nextWeapon ? nextWeapon.cost : null, available: !!nextWeapon },
+      { key: 'food',       label: 'Provisões (+1 Comida)',          price: 50,  available: true },
+      { key: 'heal',       label: 'Poção de Cura (+40 HP)',          price: 40,  available: player.health < player.maxHealth },
+      { key: 'maxhealth',  label: 'Aumento Vida Máxima (+20 Max HP)',price: 100, available: player.maxHealth < 200 },
+      { key: 'speed',      label: 'Botas de Velocidade (+0.8 Speed)',price: 120, available: player.speed < 6.5 },
+      { key: 'fuel',       label: 'Galão de Combustível (+50 Gerador HP)', price: 60, available: generator.health < generator.maxHealth },
+    ];
+  }
+
+  function toggleShop() {
+    if (phase !== 'day' || gameState !== 'playing' || currentArea !== 'home') return;
+    if (generator.health <= 0) { flashMessage('Gerador quebrado! Conserte para usar a Loja.'); return; }
+    shopOpen = !shopOpen;
+    shopIndex = 0;
+  }
+
+  function purchaseSelected() {
+    const items = getShopItems();
+    const item = items[shopIndex];
+    if (!item || !item.available) { flashMessage('Indisponível'); return; }
+    if (currency < item.price) { flashMessage('Moedas insuficientes'); return; }
+
+    if (item.key === 'turret') {
+      const slots = getTurretSlots();
+      const occupied = turrets.map(t => `${t.x},${t.y}`);
+      const freeSlot = slots.find(s => !occupied.includes(`${s.x},${s.y}`));
+      if (!freeSlot) { flashMessage('Sem espaço para torreta'); return; }
+      currency -= item.price;
+      turrets.push({ x: freeSlot.x, y: freeSlot.y, hp: TURRET_MAX_HP, cooldown: 0 });
+      flashMessage('Torreta instalada!');
+    } else if (item.key === 'weapon') {
+      currency -= item.price;
+      weaponTier++;
+      flashMessage(`Arma equipada: ${WEAPONS[weaponTier].name}`);
+    } else if (item.key === 'food') {
+      currency -= item.price;
+      player.foodCount++;
+      flashMessage('Provisão comprada!');
+    } else if (item.key === 'heal') {
+      currency -= item.price;
+      player.health = Math.min(player.maxHealth, player.health + 40);
+      flashMessage('Vida restaurada (+40 HP)');
+    } else if (item.key === 'maxhealth') {
+      currency -= item.price;
+      player.maxHealth += 20;
+      player.health += 20;
+      flashMessage('Vida Máxima Aumentada!');
+    } else if (item.key === 'speed') {
+      currency -= item.price;
+      player.speed += 0.8;
+      flashMessage('Velocidade Aumentada!');
+    } else if (item.key === 'fuel') {
+      currency -= item.price;
+      generator.health = Math.min(generator.maxHealth, generator.health + 50);
+      flashMessage('Gerador Abastecido!');
+    }
+  }
+
+  // ---------- Menu de Viagem (Caminhonete) ----------
+  function openTravelMenu() {
+    if (phase !== 'day' || gameState !== 'playing') return;
+    travelMenuOpen = true;
+    travelIndex = 0;
+  }
+
+  function getTravelDestinations() {
+    return [
+      { key: 'home',          name: 'Cabana da Floresta', unlocked: true, desc: 'Sua base segura com gerador e loja.' },
+      { key: 'gas_station',   name: 'Posto de Gasolina',  unlocked: isGasStationUnlocked(), desc: 'Mapa 4x maior. Zumbis Corredores e Tanques.' },
+      { key: 'military_base', name: 'Base Militar',       unlocked: isMilitaryBaseUnlocked(), desc: 'Mapa 4x maior. Zumbis Atiradores e hordas pesadas.' },
+    ];
+  }
+
+  function switchArea(newArea) {
+    currentArea = newArea;
+    setAreaMapSize();
+    zombies = [];
+    enemyBullets = [];
+    foods = [];
+
+    // Reposiciona o jogador na área nova
+    if (newArea === 'home') {
+      player.x = house.x + house.w/2;
+      player.y = house.y + house.h - 55;
+    } else {
+      const truck = getTruckPos();
+      player.x = truck.x - 40;
+      player.y = truck.y;
+    }
+
+    travelMenuOpen = false;
+    flashMessage(`Chegou em: ${newArea==='home'?'Cabana da Floresta':newArea==='gas_station'?'Posto de Gasolina':'Base Militar'}`);
+  }
+
+  // ---------- Ciclo dia/noite ----------
+  function skipDay() {
+    if (phase === 'day' && gameState === 'playing') {
+      phaseTimer = 0;
+    }
+  }
+
+  function startNight() {
+    phase = 'night';
+    phaseTimer = NIGHT_DURATION;
+    shopOpen = false;
+    travelMenuOpen = false;
+    zombieSpawnTimer = 0;
+    const initial = 2 + dayIndex + (gameMode === 'hard' ? 3 : 0);
+    for (let i = 0; i < initial; i++) spawnZombie();
+  }
+
+  function startDay() {
+    phase = 'day';
+    phaseTimer = DAY_DURATION;
+    zombies = [];
+    enemyBullets = [];
+  }
+
+  function advancePhase() {
+    if (phase === 'day') {
+      startNight();
+    } else {
+      currency += NIGHT_SURVIVE_BONUS;
+      const targetDays = MODES.find(m => m.key === gameMode).days;
+      if (dayIndex >= targetDays) {
+        gameState = 'win';
+      } else {
+        dayIndex++;
+        startDay();
+        flashMessage(`Dia ${dayIndex} - Prepare-se!`);
+      }
+    }
+  }
+
+  // ---------- Iniciar / Reiniciar Jogo ----------
+  function startGame(modeKey) {
+    gameMode = modeKey || gameMode;
+    currentArea = 'home';
+    layoutHouse();
+    setAreaMapSize();
+    gameState = 'playing';
+    dayIndex = 1; phase = 'day'; phaseTimer = DAY_DURATION;
+    currency = 0; weaponTier = 0; godMode = false;
+    shopOpen = false; travelMenuOpen = false; adminMenuOpen = false;
+    shopIndex = 0; shopMessage = ''; shopMessageTimer = 0;
+    shopNavCooldown = 0;
+
+    keys.w = keys.a = keys.s = keys.d = keys.r = keys.e = keys.f = false;
+    mouseDown = false;
+    mouseMoved = true;
+    gamepadButtons = {};
+    prevGamepadButtons = {};
+    gamepadAxes = [0,0,0,0];
+
+    player.x = house.x + house.w/2;
+    player.y = house.y + house.h - 55;
+    player.health = 100; player.maxHealth = 100; player.speed = 4.0;
+    player.foodCount = 3; player.hungerLevel = 100; player.aimAngle = -Math.PI/2;
+
+    cameraX = clamp(player.x - W/2, 0, mapW - W);
+    cameraY = clamp(player.y - H/2, 0, mapH - H);
+    mousePos.x = player.x - cameraX;
+    mousePos.y = player.y - cameraY;
+
+    generator.x = W/2; generator.y = H/2;
+    generator.health = 100;
+
+    bullets = []; enemyBullets = []; zombies = []; foods = []; turrets = [];
+    ammo = getMaxAmmo(); reloading = false; reloadTimer = 0;
+    bulletCooldown = 0; zombieSpawnTimer = 0; foodSpawnTimer = 0; repairCooldown = 0;
+
+    for (let i = 0; i < 2; i++) spawnFood();
+  }
+
+  // ---------- Gamepad ----------
+  function updateGamepad() {
+    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    let pad = null;
+    for (let i = 0; i < pads.length; i++) if (pads[i] && pads[i].connected) { pad = pads[i]; break; }
+    if (!pad) {
+      gamepadConnected = false;
+      gamepadAxes = [0,0,0,0];
+      prevGamepadButtons = {};
+      gamepadButtons = {};
+      return;
+    }
+    gamepadConnected = true;
+    gamepadAxes[0] = pad.axes[0] || 0;
+    gamepadAxes[1] = pad.axes[1] || 0;
+    gamepadAxes[2] = pad.axes[2] || 0;
+    gamepadAxes[3] = pad.axes[3] || 0;
+    prevGamepadButtons = gamepadButtons;
+    gamepadButtons = {};
+    for (let i = 0; i < pad.buttons.length; i++) gamepadButtons[i] = pad.buttons[i].pressed;
+  }
+  function gpJustPressed(i) { return gamepadButtons[i] && !prevGamepadButtons[i]; }
+
+  // ---------- Update ----------
+  function update() {
+    updateGamepad();
+
+    /* ── MENU PRINCIPAL ── */
+    if (gameState === 'menu') {
+      if ((gamepadAxes[1] < -0.5 || keys.w) && shopNavCooldown <= 0) {
+        menuIndex = (menuIndex - 1 + MODES.length) % MODES.length;
+        shopNavCooldown = 12;
+      } else if ((gamepadAxes[1] > 0.5 || keys.s) && shopNavCooldown <= 0) {
+        menuIndex = (menuIndex + 1) % MODES.length;
+        shopNavCooldown = 12;
+      }
+      if (shopNavCooldown > 0) shopNavCooldown--;
+      if (gpJustPressed(0) || gpJustPressed(9) || keys.enter || keys[' ']) {
+        startGame(MODES[menuIndex].key);
+      }
+      return;
+    }
+
+    /* ── GAMEOVER / WIN ── */
+    if (gameState === 'gameover' || gameState === 'win') {
+      if (gpJustPressed(0) || gpJustPressed(9) || keys.enter || keys[' ']) {
+        gameState = 'menu';
+      }
+      return;
+    }
+
+    /* ── MENU DE VIAGEM (CAMINHONETE) ── */
+    if (travelMenuOpen) {
+      const dests = getTravelDestinations();
+      if ((gamepadAxes[1] < -0.5 || keys.w) && shopNavCooldown <= 0) {
+        travelIndex = (travelIndex - 1 + dests.length) % dests.length; shopNavCooldown = 12;
+      } else if ((gamepadAxes[1] > 0.5 || keys.s) && shopNavCooldown <= 0) {
+        travelIndex = (travelIndex + 1) % dests.length; shopNavCooldown = 12;
+      }
+      if (shopNavCooldown > 0) shopNavCooldown--;
+
+      if (gpJustPressed(0) || keys.enter || keys[' ']) {
+        const selected = dests[travelIndex];
+        if (selected.unlocked) switchArea(selected.key);
+        else flashMessage('Área Bloqueada!');
+      }
+      if (gpJustPressed(1) || keys.r) travelMenuOpen = false; // Botão B ou R fecha
+      return;
+    }
+
+    /* ── PAINEL ADMIN (F2) ── */
+    if (adminMenuOpen) {
+      const optsCount = 6;
+      if ((gamepadAxes[1] < -0.5 || keys.w) && shopNavCooldown <= 0) {
+        adminIndex = (adminIndex - 1 + optsCount) % optsCount; shopNavCooldown = 12;
+      } else if ((gamepadAxes[1] > 0.5 || keys.s) && shopNavCooldown <= 0) {
+        adminIndex = (adminIndex + 1) % optsCount; shopNavCooldown = 12;
+      }
+      if (shopNavCooldown > 0) shopNavCooldown--;
+
+      if (gpJustPressed(0) || keys.enter || keys[' ']) {
+        if (adminIndex === 0) godMode = !godMode;
+        else if (adminIndex === 1) currency += 500;
+        else if (adminIndex === 2) phase = phase === 'day' ? 'night' : 'day';
+        else if (adminIndex === 3) dayIndex++;
+        else if (adminIndex === 4) { player.health = player.maxHealth; generator.health = generator.maxHealth; player.hungerLevel = 100; }
+        else if (adminIndex === 5) {
+          const nextA = currentArea === 'home' ? 'gas_station' : currentArea === 'gas_station' ? 'military_base' : 'home';
+          switchArea(nextA);
+        }
+        flashMessage('Cheat Aplicado!');
+      }
+      return;
+    }
+
+    /* ── LOJA ── */
+    if (shopOpen) {
+      const items = getShopItems();
+      if ((gamepadAxes[1] < -0.5 || keys.w) && shopNavCooldown <= 0) { shopIndex = (shopIndex - 1 + items.length) % items.length; shopNavCooldown = 12; }
+      else if ((gamepadAxes[1] > 0.5 || keys.s) && shopNavCooldown <= 0) { shopIndex = (shopIndex + 1) % items.length; shopNavCooldown = 12; }
+      if (shopNavCooldown > 0) shopNavCooldown--;
+      if (gpJustPressed(0) || keys.enter || keys[' ']) purchaseSelected();
+      if (shopMessageTimer > 0) shopMessageTimer--;
+      return;
+    }
+
+    /* ── PLAYING ── */
+    if (gpJustPressed(1)) toggleShop();
+
+    let mx = 0, my = 0;
+    if (keys.w) my -= 1;
+    if (keys.s) my += 1;
+    if (keys.a) mx -= 1;
+    if (keys.d) mx += 1;
+    if (Math.abs(gamepadAxes[0]) > 0.15) mx = gamepadAxes[0];
+    if (Math.abs(gamepadAxes[1]) > 0.15) my = gamepadAxes[1];
+    if (mx !== 0 || my !== 0) {
+      const len = Math.sqrt(mx*mx + my*my) || 1;
+      moveWithWallCollision(player, (mx/len)*player.speed, (my/len)*player.speed);
+    }
+
+    // Atualiza Câmera para seguir o jogador nos mapas 4x
+    cameraX = clamp(player.x - W/2, 0, mapW - W);
+    cameraY = clamp(player.y - H/2, 0, mapH - H);
+
+    const rsMag = Math.sqrt(gamepadAxes[2]**2 + gamepadAxes[3]**2);
+    if (rsMag > 0.25) {
+      player.aimAngle = Math.atan2(gamepadAxes[3], gamepadAxes[2]);
+    } else if (mouseMoved) {
+      player.aimAngle = Math.atan2((mousePos.y + cameraY) - player.y, (mousePos.x + cameraX) - player.x);
+    }
+
+    const shootHeld = mouseDown || gamepadButtons[7] || gamepadButtons[5];
+    if (shootHeld && bulletCooldown <= 0 && ammo > 0 && !reloading) {
+      shootBullet(player.x, player.y, player.aimAngle);
+      bulletCooldown = WEAPONS[weaponTier].cooldown;
+    }
+
+    if ((keys.r || gpJustPressed(2)) && ammo < getMaxAmmo() && !reloading) reload();
+    if (keys.e || gamepadButtons[3]) attemptRepair();
+    if (keys.f || gpJustPressed(8)) skipDay(); // Skip dia (F ou SELECT)
+
+    // Interação com Caminhonete
+    if (phase === 'day') {
+      const truck = getTruckPos();
+      if (distance(player.x, player.y, truck.x, truck.y) < 65) {
+        if (gpJustPressed(0) || keys.e || keys.enter) {
+          openTravelMenu();
+        }
+      }
+    }
+
+    if (bulletCooldown > 0) bulletCooldown--;
+    if (repairCooldown > 0) repairCooldown--;
+    if (reloading) { reloadTimer--; if (reloadTimer <= 0) { ammo = getMaxAmmo(); reloading = false; } }
+
+    phaseTimer -= 1/60;
+    if (phaseTimer <= 0) { phaseTimer = 0; advancePhase(); }
+
+    // Fome e Gerador desce 4x mais rápido!
+    player.hungerLevel -= player.hungerDecayPerSec / 60;
+    if (player.hungerLevel <= 0) { player.hungerLevel = 0; damagePlayer(player.starveDamagePerSec/60); }
+    else if (player.hungerLevel < 30) { damagePlayer(player.lowHungerDamagePerSec/60); }
+
+    // Gerador decai apenas se estiver na Cabana
+    if (currentArea === 'home' && generator.health > 0) {
+      generator.health = Math.max(0, generator.health - (generator.decayPerSec / 60));
+    }
+
+    // Spawns
+    if (phase === 'night') {
+      zombieSpawnTimer--;
+      const spawnDelay = Math.max(18, 55 - dayIndex*(gameMode==='hard'?8:6));
+      const maxZombies = gameMode==='hard' ? 22 : gameMode==='endless' ? Math.min(32, 16 + dayIndex*2) : 16;
+      if (zombieSpawnTimer <= 0 && zombies.length < maxZombies) {
+        spawnZombie();
+        zombieSpawnTimer = spawnDelay + Math.floor(Math.random()*18);
+      }
+    }
+
+    foodSpawnTimer--;
+    if (foodSpawnTimer <= 0 && foods.length < MAX_FOOD_ITEMS) { spawnFood(); foodSpawnTimer = FOOD_SPAWN_DELAY + Math.floor(Math.random()*100); }
+
+    // Atualização Zumbis
+    for (let z of zombies) {
+      const dx = player.x - z.x, dy = player.y - z.y;
+      const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+      moveWithWallCollision(z, (dx/dist)*z.speed, (dy/dist)*z.speed);
+
+      // Zumbi atirador da Base Militar
+      if (z.type === 'military_shooter') {
+        z.shootCooldown--;
+        if (z.shootCooldown <= 0 && dist < 450) {
+          const angle = Math.atan2(dy, dx);
+          enemyBullets.push({
+            x: z.x, y: z.y,
+            vx: Math.cos(angle)*6, vy: Math.sin(angle)*6,
+            radius: 4, damage: 14
+          });
+          z.shootCooldown = 90 + Math.floor(Math.random()*40);
+        }
+      }
+
+      if (distance(z.x, z.y, player.x, player.y) < player.radius + z.radius) damagePlayer(ZOMBIE_CONTACT_DMG_PER_SEC/60);
+      if (currentArea === 'home' && distance(z.x, z.y, generator.x, generator.y) < generator.radius + z.radius) damageGenerator(ZOMBIE_GEN_DMG_PER_SEC/60);
+      if (currentArea === 'home') {
+        for (let t of turrets) {
+          if (distance(z.x, z.y, t.x, t.y) < 20 + z.radius) t.hp -= ZOMBIE_TURRET_DMG_PER_SEC/60;
+        }
+      }
+    }
+    if (currentArea === 'home') turrets = turrets.filter(t => t.hp > 0);
+
+    // Torretas (apenas na casa)
+    if (currentArea === 'home') {
+      for (let t of turrets) {
+        if (t.cooldown > 0) { t.cooldown--; continue; }
+        let nearest = null, nd = TURRET_RANGE;
+        for (let z of zombies) {
+          const d = distance(t.x, t.y, z.x, z.y);
+          if (d < nd) { nd = d; nearest = z; }
+        }
+        if (nearest) { nearest.health -= TURRET_DAMAGE; t.cooldown = TURRET_COOLDOWN; }
+      }
+    }
+
+    // Balas Jogador
+    for (let b of bullets) {
+      b.x += b.vx; b.y += b.vy;
+      if (b.x < -20 || b.x > mapW+20 || b.y < -20 || b.y > mapH+20) b.active = false;
+    }
+    for (let b of bullets) {
+      if (!b.active) continue;
+      for (let z of zombies) {
+        if (distance(b.x, b.y, z.x, z.y) < b.radius + z.radius) {
+          z.health -= b.damage; b.active = false;
+          break;
+        }
+      }
+    }
+
+    // Balas Inimigas (Atirador Militar)
+    for (let eb of enemyBullets) {
+      eb.x += eb.vx; eb.y += eb.vy;
+      if (distance(eb.x, eb.y, player.x, player.y) < eb.radius + player.radius) {
+        damagePlayer(eb.damage);
+        eb.active = false;
+      }
+    }
+    enemyBullets = enemyBullets.filter(eb => eb.active !== false);
+
+    for (const z of zombies) {
+      if (z.health <= 0) currency += KILL_REWARD;
+    }
+    zombies = zombies.filter(z => z.health > 0);
+    bullets = bullets.filter(b => b.active);
+
+    for (let f of foods) {
+      if (distance(player.x, player.y, f.x, f.y) < player.radius + f.radius) { collectFood(f); break; }
+    }
+
+    if (shopMessageTimer > 0) shopMessageTimer--;
+  }
+
+  // ---------- Desenho (Aparência de Floresta & Áreas) ----------
+  function drawBar(x, y, w, h, pct, color, glow) {
+    ctx.fillStyle = 'rgba(0,0,0,0.65)';
+    ctx.fillRect(x, y, w, h);
+    ctx.save();
+    ctx.shadowColor = glow; ctx.shadowBlur = 8;
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, w * clamp(pct,0,1), h);
+    ctx.restore();
+    ctx.strokeStyle = '#5a3d24';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x, y, w, h);
+  }
+
+  function drawMapFloor() {
+    const grd = ctx.createRadialGradient(mapW/2,mapH/2,80, mapW/2,mapH/2, Math.max(mapW,mapH)*0.75);
+    if (currentArea === 'home') {
+      grd.addColorStop(0, '#162817'); grd.addColorStop(1, '#070f08');
+    } else if (currentArea === 'gas_station') {
+      grd.addColorStop(0, '#26221c'); grd.addColorStop(1, '#0c0a08');
+    } else { // military_base
+      grd.addColorStop(0, '#1c221e'); grd.addColorStop(1, '#080c09');
+    }
+    ctx.fillStyle = grd;
+    ctx.fillRect(0,0,mapW,mapH);
+
+    // Texturas de chão
+    ctx.fillStyle = currentArea === 'home' ? 'rgba(45,80,40,0.2)' : 'rgba(80,70,50,0.15)';
+    for (let gx = 30; gx < mapW; gx += 80) {
+      for (let gy = 30; gy < mapH; gy += 80) {
+        const hash = (gx*31 + gy*17)%100;
+        if (hash > 35) {
+          ctx.beginPath();
+          ctx.arc(gx + (hash%10), gy + (hash%7), 2 + (hash%4), 0, Math.PI*2);
+          ctx.fill();
+        }
+      }
+    }
+
+    // Detalhes do Posto de Gasolina
+    if (currentArea === 'gas_station') {
+      ctx.fillStyle = '#3a342b';
+      ctx.fillRect(mapW/2 - 140, mapH/2 - 100, 280, 200); // Asfalto do posto
+      ctx.strokeStyle = '#ffc83b'; ctx.lineWidth = 3;
+      ctx.strokeRect(mapW/2 - 140, mapH/2 - 100, 280, 200);
+      ctx.fillStyle = '#ffaa33'; ctx.font = 'bold 20px Courier New'; ctx.textAlign = 'center';
+      ctx.fillText('⛽ POSTO DE GASOLINA', mapW/2, mapH/2 - 60); ctx.textAlign = 'left';
+    }
+
+    // Detalhes da Base Militar
+    if (currentArea === 'military_base') {
+      ctx.strokeStyle = '#4a5e4d'; ctx.lineWidth = 4;
+      ctx.strokeRect(40, 40, mapW - 80, mapH - 80); // Cercado militar
+      ctx.fillStyle = '#38473a'; ctx.font = 'bold 22px Courier New'; ctx.textAlign = 'center';
+      ctx.fillText('🎖️ BASE MILITAR - ZONA RESTRITA', mapW/2, 90); ctx.textAlign = 'left';
+    }
+  }
+
+  function drawHouse() {
+    if (currentArea === 'home') {
+      // Chão interno de madeira
+      ctx.fillStyle = '#3a2618';
+      ctx.fillRect(house.x, house.y, house.w, house.h);
+      ctx.fillStyle = '#4a3220';
+      ctx.fillRect(house.x+8, house.y+8, house.w-16, house.h-16);
+
+      // Tábuas
+      ctx.strokeStyle = '#2d1c11';
+      ctx.lineWidth = 1;
+      for (let py = house.y + 24; py < house.y + house.h - 8; py += 24) {
+        ctx.beginPath(); ctx.moveTo(house.x + 8, py); ctx.lineTo(house.x + house.w - 8, py); ctx.stroke();
+      }
+
+      // Troncos de madeira
+      ctx.strokeStyle = '#8b5a2b';
+      ctx.lineWidth = WALL_T;
+      ctx.shadowColor = 'rgba(139,90,43,0.4)'; ctx.shadowBlur = 8;
+      for (const s of getWallSegments()) {
+        ctx.strokeRect(s.x + WALL_T/2, s.y + WALL_T/2, Math.max(s.w-WALL_T,0), Math.max(s.h-WALL_T,0));
+      }
+      ctx.shadowBlur = 0;
+
+      // Porta
+      ctx.fillStyle = '#1c120a';
+      ctx.fillRect(house.x + house.w/2 - DOOR_HALF, house.y + house.h - 12, DOOR_HALF*2, 22);
+
+    } else if (currentArea === 'gas_station') {
+      // Prédio do Posto de Gasolina (Loja de Conveniência com 3 Cômodos)
+      const cx = mapW / 2, cy = mapH / 2;
+      const bw = 440, bh = 300, WT = 16;
+      const bx = cx - bw/2, by = cy - bh/2;
+
+      // Pisos das Salas
+      ctx.fillStyle = '#2b2926'; ctx.fillRect(bx, by, bw, bh); // Piso Geral
+      ctx.fillStyle = '#3d3832'; ctx.fillRect(bx + 10, by + 10, 240, bh - 20); // Salão Principal
+      ctx.fillStyle = '#26332a'; ctx.fillRect(bx + 276, by + 10, bw - 286, 130); // Estoque
+      ctx.fillStyle = '#332a26'; ctx.fillRect(bx + 276, by + 160, bw - 286, bh - 170); // Escritório
+
+      // Rótulos dos Cômodos
+      ctx.fillStyle = '#d4a059'; ctx.font = 'bold 13px Courier New'; ctx.textAlign = 'center';
+      ctx.fillText('LOJA DE CONVENIÊNCIA', bx + 130, by + 30);
+      ctx.fillText('ESTOQUE', bx + 350, by + 30);
+      ctx.fillText('ESCRITÓRIO', bx + 350, by + 180);
+      ctx.textAlign = 'left';
+
+      // Bombas de Gasolina cobertas na frente
+      ctx.fillStyle = '#1a1815'; ctx.fillRect(cx - 160, by + bh + 40, 320, 16); // Cobertura
+      ctx.fillStyle = '#d4a059'; ctx.fillRect(cx - 100, by + bh + 56, 30, 25); // Bomba 1
+      ctx.fillRect(cx + 70, by + bh + 56, 30, 25); // Bomba 2
+      ctx.fillStyle = '#ffaa33'; ctx.font = 'bold 10px Courier New'; ctx.textAlign = 'center';
+      ctx.fillText('BOMBA 1', cx - 85, by + bh + 72);
+      ctx.fillText('BOMBA 2', cx + 85, by + bh + 72);
+      ctx.textAlign = 'left';
+
+      // Paredes
+      ctx.strokeStyle = '#c48b49'; ctx.lineWidth = WT;
+      ctx.shadowColor = 'rgba(196,139,73,0.4)'; ctx.shadowBlur = 8;
+      for (const s of getWallSegments()) {
+        ctx.strokeRect(s.x + WT/2, s.y + WT/2, Math.max(s.w-WT,0), Math.max(s.h-WT,0));
+      }
+      ctx.shadowBlur = 0;
+
+    } else if (currentArea === 'military_base') {
+      // Bunker Militar com 4 Cômodos + Corredor Central
+      const cx = mapW / 2, cy = mapH / 2;
+      const bw = 560, bh = 380, WT = 16;
+      const bx = cx - bw/2, by = cy - bh/2;
+
+      // Pisos dos Cômodos
+      ctx.fillStyle = '#1e2420'; ctx.fillRect(bx, by, bw, bh); // Piso Geral
+      ctx.fillStyle = '#2a332c'; ctx.fillRect(bx + 226, by + 10, 98, bh - 20); // Corredor Central
+      ctx.fillStyle = '#222d38'; ctx.fillRect(bx + 10, by + 10, 194, 170); // Sala de Comando
+      ctx.fillStyle = '#382a22'; ctx.fillRect(bx + 10, by + 195, 194, bh - 205); // Armaria
+      ctx.fillStyle = '#223831'; ctx.fillRect(bx + 346, by + 10, 204, 170); // Enfermaria
+      ctx.fillStyle = '#2d2838'; ctx.fillRect(bx + 346, by + 195, 204, bh - 205); // Dormitório
+
+      // Rótulos dos Cômodos
+      ctx.fillStyle = '#77b585'; ctx.font = 'bold 12px Courier New'; ctx.textAlign = 'center';
+      ctx.fillText('COMANDO / RADAR', bx + 107, by + 30);
+      ctx.fillText('ARMARIA / MUNIÇÃO', bx + 107, by + 215);
+      ctx.fillText('ENFERMARIA MILITAR', bx + 448, by + 30);
+      ctx.fillText('DORMITÓRIO', bx + 448, by + 215);
+      ctx.fillText('CORREDOR', cx, by + 30);
+      ctx.textAlign = 'left';
+
+      // Torres de Vigilância nos cantos da base
+      [[60,60],[mapW-100,60],[60,mapH-100],[mapW-100,mapH-100]].forEach(([tx,ty])=>{
+        ctx.fillStyle = '#2c382f'; ctx.fillRect(tx, ty, 40, 40);
+        ctx.strokeStyle = '#4e6353'; ctx.lineWidth = 2; ctx.strokeRect(tx, ty, 40, 40);
+        ctx.fillStyle = '#77b585'; ctx.font = '10px Courier New'; ctx.textAlign = 'center';
+        ctx.fillText('TORRE', tx+20, ty+24);
+      });
+      ctx.textAlign = 'left';
+
+      // Paredes de Concreto Militar
+      ctx.strokeStyle = '#4e6353'; ctx.lineWidth = WT;
+      ctx.shadowColor = 'rgba(78,99,83,0.5)'; ctx.shadowBlur = 8;
+      for (const s of getWallSegments()) {
+        ctx.strokeRect(s.x + WT/2, s.y + WT/2, Math.max(s.w-WT,0), Math.max(s.h-WT,0));
+      }
+      ctx.shadowBlur = 0;
+    }
+  }
+
+  function drawTruck() {
+    if (phase !== 'day') return;
+    const truck = getTruckPos();
+    ctx.save();
+    ctx.shadowColor = '#d4a059'; ctx.shadowBlur = 10;
+    // Caminhonete
+    ctx.fillStyle = '#6b2d2d';
+    ctx.fillRect(truck.x - 30, truck.y - 20, 60, 40);
+    ctx.fillStyle = '#3a1818';
+    ctx.fillRect(truck.x + 5, truck.y - 18, 22, 36); // Cabine
+    ctx.fillStyle = '#8fb3ff';
+    ctx.fillRect(truck.x + 10, truck.y - 14, 12, 28); // Vidro
+    // Rodas
+    ctx.fillStyle = '#111';
+    ctx.fillRect(truck.x - 24, truck.y - 24, 12, 6);
+    ctx.fillRect(truck.x + 12, truck.y - 24, 12, 6);
+    ctx.fillRect(truck.x - 24, truck.y + 18, 12, 6);
+    ctx.fillRect(truck.x + 12, truck.y + 18, 12, 6);
+    ctx.restore();
+
+    // Prompt de aproximacao
+    if (distance(player.x, player.y, truck.x, truck.y) < 65) {
+      ctx.fillStyle = '#ffc83b';
+      ctx.font = 'bold 12px Courier New'; ctx.textAlign = 'center';
+      ctx.fillText('🚚 CAMINHONETE [E / A / Enter]', truck.x, truck.y - 32);
+      ctx.textAlign = 'left';
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    if (gameState === 'menu') {
+      drawMenu();
+      return;
+    }
+
+    ctx.save();
+    ctx.translate(-cameraX, -cameraY); // Translação da câmera nos mapas!
+
+    drawMapFloor();
+    drawHouse();
+    drawTruck();
+
+    // Torretas (Cabana)
+    if (currentArea === 'home') {
+      if (phase === 'day') {
+        const occupied = turrets.map(t => `${t.x},${t.y}`);
+        for (const s of getTurretSlots()) {
+          if (!occupied.includes(`${s.x},${s.y}`)) {
+            ctx.strokeStyle = 'rgba(212,160,89,0.3)';
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(s.x, s.y, 16, 0, Math.PI*2); ctx.stroke();
+          }
+        }
+      }
+      for (const t of turrets) {
+        ctx.save();
+        ctx.shadowColor = '#ffaa33'; ctx.shadowBlur = 8;
+        ctx.fillStyle = '#6e4a27';
+        ctx.beginPath(); ctx.arc(t.x, t.y, 16, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#ffaa33';
+        ctx.fillRect(t.x-3, t.y-16, 6, 16);
+        ctx.restore();
+        ctx.fillStyle = '#222'; ctx.fillRect(t.x-16, t.y-26, 32, 5);
+        ctx.fillStyle = '#ffaa33'; ctx.fillRect(t.x-16, t.y-26, 32*(t.hp/TURRET_MAX_HP), 5);
+      }
+
+      // Gerador / Fogueira
+      ctx.save();
+      ctx.shadowColor = generator.health > 0 ? '#ff9900' : '#444'; ctx.shadowBlur = generator.health > 0 ? 24 : 0;
+      ctx.fillStyle = generator.health > 0 ? '#6e4420' : '#333';
+      ctx.beginPath(); ctx.arc(generator.x, generator.y, generator.radius, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = generator.health > 0 ? '#ff9900' : '#222';
+      ctx.beginPath(); ctx.arc(generator.x, generator.y, generator.radius*0.48, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+      ctx.fillStyle = '#222'; ctx.fillRect(generator.x-28, generator.y-generator.radius-14, 56, 7);
+      ctx.fillStyle = generator.health/generator.maxHealth > 0.5 ? '#ff9900' : generator.health > 0 ? '#ffaa00' : '#ff4444';
+      ctx.fillRect(generator.x-28, generator.y-generator.radius-14, 56*(generator.health/generator.maxHealth), 7);
+    }
+
+    // Provisões
+    for (const f of foods) {
+      ctx.save();
+      ctx.shadowColor = '#ffc83b'; ctx.shadowBlur = 10;
+      ctx.fillStyle = '#ffc83b';
+      ctx.beginPath(); ctx.arc(f.x, f.y, f.radius, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+
+    // Zumbis
+    for (const z of zombies) {
+      ctx.save();
+      let color = '#24451e', glow = '#38702b', eyeCol = '#ff3333';
+      if (z.type === 'runner') { color = '#73221e'; glow = '#ff4444'; eyeCol = '#ffff33'; }
+      else if (z.type === 'tank') { color = '#1a291d'; glow = '#2d5a35'; eyeCol = '#ff9900'; }
+      else if (z.type === 'military_shooter') { color = '#3d4a36'; glow = '#5a6e50'; eyeCol = '#00ffcc'; }
+
+      ctx.shadowColor = glow; ctx.shadowBlur = 10;
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.arc(z.x, z.y, z.radius, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+
+      ctx.fillStyle = eyeCol;
+      ctx.beginPath(); ctx.arc(z.x-5, z.y-5, 3, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(z.x+5, z.y-5, 3, 0, Math.PI*2); ctx.fill();
+    }
+
+    // Projéteis Jogador
+    ctx.save();
+    ctx.shadowColor = '#ffe066'; ctx.shadowBlur = 10;
+    ctx.fillStyle = '#ffe066';
+    for (const b of bullets) { ctx.beginPath(); ctx.arc(b.x, b.y, b.radius, 0, Math.PI*2); ctx.fill(); }
+    ctx.restore();
+
+    // Projéteis Inimigos (Militar)
+    ctx.save();
+    ctx.shadowColor = '#00ffcc'; ctx.shadowBlur = 10;
+    ctx.fillStyle = '#00ffcc';
+    for (const eb of enemyBullets) { ctx.beginPath(); ctx.arc(eb.x, eb.y, eb.radius, 0, Math.PI*2); ctx.fill(); }
+    ctx.restore();
+
+    // Jogador
+    ctx.save();
+    ctx.translate(player.x, player.y);
+    ctx.rotate(player.aimAngle);
+    ctx.shadowColor = godMode ? '#ff00ff' : '#d4a059'; ctx.shadowBlur = 12;
+    ctx.fillStyle = godMode ? '#ff00ff' : '#2d5a27';
+    ctx.beginPath(); ctx.arc(0, 0, player.radius, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#4a3728';
+    ctx.fillRect(6, -4, 20, 8);
+    ctx.fillStyle = '#1b1b1b';
+    ctx.fillRect(24, -5, 7, 10);
+    ctx.restore();
+
+    // Escuridão da Noite
+    if (phase === 'night') {
+      const t = clamp(phaseTimer / NIGHT_DURATION, 0, 1);
+      ctx.fillStyle = `rgba(3,8,4,${0.4 + 0.2*(1-t)})`;
+      ctx.fillRect(0,0,mapW,mapH);
+    }
+
+    ctx.restore(); // Fim do isolamento da Câmera!
+
+    drawHUD();
+
+    if (shopOpen) drawShop();
+    if (travelMenuOpen) drawTravelMenu();
+    if (adminMenuOpen) drawAdminMenu();
+
+    if (gameState === 'win') drawEndScreen('VOCÊ SOBREVIVEU À FLORESTA!', '#ffc83b');
+    if (gameState === 'gameover') drawEndScreen('VOCÊ FOI DEVORADO', '#ff4444');
+  }
+
+  // ---------- Menu Principal ----------
+  function drawMenu() {
+    ctx.fillStyle = '#070f08'; ctx.fillRect(0,0,W,H);
+
+    const pw = Math.min(520, W*0.88), ph = 380;
+    const px = W/2 - pw/2, py = H/2 - ph/2;
+
+    ctx.fillStyle = 'rgba(12,20,13,0.95)';
+    ctx.fillRect(px, py, pw, ph);
+    ctx.strokeStyle = '#8b5a2b'; ctx.lineWidth = 3;
+    ctx.strokeRect(px, py, pw, ph);
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#8b5a2b'; ctx.font = 'bold 14px Courier New';
+    ctx.fillText('🌲 SOBREVIVÊNCIA NA FLORESTA 🌲', W/2, py + 35);
+    ctx.fillStyle = '#ffc83b'; ctx.font = 'bold 30px Courier New';
+    ctx.fillText('ZOMBIE RUSH', W/2, py + 70);
+
+    MODES.forEach((m, i) => {
+      const iy = py + 120 + i*65;
+      const selected = i === menuIndex;
+
+      ctx.fillStyle = selected ? 'rgba(139,90,43,0.35)' : 'rgba(0,0,0,0.3)';
+      ctx.fillRect(px + 30, iy, pw - 60, 52);
+
+      if (selected) {
+        ctx.strokeStyle = '#ffc83b'; ctx.lineWidth = 2;
+        ctx.strokeRect(px + 30, iy, pw - 60, 52);
+      }
+
+      ctx.textAlign = 'left';
+      ctx.font = 'bold 16px Courier New';
+      ctx.fillStyle = selected ? '#ffc83b' : '#aaa';
+      ctx.fillText((selected ? '▶ ' : '  ') + m.name, px + 45, iy + 22);
+
+      ctx.font = '11px Courier New';
+      ctx.fillStyle = selected ? '#ddd' : '#777';
+      ctx.fillText(m.desc, px + 45, iy + 40);
+    });
+
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 13px Courier New';
+    ctx.fillStyle = '#888';
+    ctx.fillText('Navegar: W/S / Setas / D-Pad  |  Confirmar: ENTER / Espaço / 🎮 A', W/2, py + ph - 20);
+    ctx.textAlign = 'left';
+  }
+
+  function drawHUD() {
+    const bw = 190, bh = 16, bx = W - bw - 24, gap = 24;
+    ctx.font = 'bold 13px Courier New';
+    ctx.fillStyle = '#d4a059';
+    ctx.textAlign = 'left';
+    ctx.fillText('❤️ Vida', bx, 24 - 6);
+    drawBar(bx, 24, bw, bh, player.health/player.maxHealth, '#ff4444', '#ff4444');
+    ctx.fillText('🍖 Fome (4x)', bx, 24+gap - 6);
+    drawBar(bx, 24+gap, bw, bh, player.hungerLevel/100, '#ffc83b', '#ffc83b');
+
+    if (currentArea === 'home') {
+      ctx.fillText('⚡ Gerador (4x)', bx, 24+gap*2 - 6);
+      drawBar(bx, 24+gap*2, bw, bh, generator.health/generator.maxHealth, '#ff9900', '#ff9900');
+    }
+
+    ctx.textAlign = 'left';
+    ctx.font = 'bold 16px Courier New';
+    ctx.fillStyle = phase === 'day' ? '#ffc83b' : '#8fb3ff';
+    const icon = phase === 'day' ? '☀️' : '🌙';
+    const mins = Math.floor(phaseTimer/60), secs = Math.floor(phaseTimer%60);
+    const targetDays = MODES.find(m => m.key === gameMode).days;
+    const dayStr = targetDays === Infinity ? `Dia ${dayIndex} (Infinito)` : `Dia ${dayIndex}/${targetDays}`;
+    const areaName = currentArea==='home'?'Cabana':currentArea==='gas_station'?'Posto Gasolina':'Base Militar';
+
+    ctx.fillText(`${icon} ${dayStr} [${areaName}] - ${phase==='day'?'Dia':'Noite'} - ${mins}:${secs<10?'0':''}${secs}`, 24, 30);
+
+    ctx.font = 'bold 15px Courier New';
+    ctx.fillStyle = '#ffc83b';
+    ctx.fillText(`💰 ${currency}   🍎 ${player.foodCount}   ${godMode?'👑 ADMIN GODMODE':''}`, 24, 56);
+
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 15px Courier New';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(`${WEAPONS[weaponTier].name}: ${ammo}/${getMaxAmmo()}${reloading ? ' (recarregando...)' : ''}`, W/2, H - 24);
+
+    // Botão de acelerar dia
+    if (phase === 'day') {
+      ctx.fillStyle = '#ffc83b'; ctx.font = 'bold 12px Courier New';
+      ctx.fillText('⏩ Pressione F / SELECT no gamepad para Acelerar para a Noite', W/2, H - 46);
+    }
+
+    ctx.textAlign = 'left';
+    ctx.font = '11px Courier New';
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.fillText('Mover: WASD | Mirar: Mouse/Stick | Atirar: RT/Click | Recarregar: R | Reparar: E | Loja: Q | Admin: F2', 24, H - 10);
+
+    if (shopMessageTimer > 0) {
+      ctx.textAlign = 'center';
+      ctx.font = 'bold 18px Courier New';
+      ctx.fillStyle = '#ffc83b';
+      ctx.fillText(shopMessage, W/2, 90);
+      ctx.textAlign = 'left';
+    }
+  }
+
+  function drawShop() {
+    const panelW = 520, panelH = 400;
+    const px = W/2 - panelW/2, py = H/2 - panelH/2;
+    ctx.fillStyle = 'rgba(12,20,13,0.96)';
+    ctx.fillRect(px, py, panelW, panelH);
+    ctx.strokeStyle = '#8b5a2b'; ctx.lineWidth = 3;
+    ctx.strokeRect(px, py, panelW, panelH);
+
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 22px Courier New';
+    ctx.fillStyle = '#ffc83b';
+    ctx.fillText('MERCADOR DA FLORESTA', W/2, py + 35);
+    ctx.font = '14px Courier New';
+    ctx.fillStyle = '#ffc83b';
+    ctx.fillText(`💰 Moedas: ${currency}`, W/2, py + 60);
+
+    const items = getShopItems();
+    items.forEach((item, i) => {
+      const iy = py + 92 + i*42;
+      const selected = i === shopIndex;
+      ctx.fillStyle = selected ? 'rgba(139,90,43,0.35)' : 'transparent';
+      ctx.fillRect(px+15, iy-18, panelW-30, 36);
+      if (selected) { ctx.strokeStyle = '#ffc83b'; ctx.lineWidth = 2; ctx.strokeRect(px+15, iy-18, panelW-30, 36); }
+      ctx.textAlign = 'left';
+      ctx.font = 'bold 14px Courier New';
+      ctx.fillStyle = item.available ? '#fff' : '#777';
+      ctx.fillText(item.label, px+25, iy+4);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = item.available ? '#ffc83b' : '#777';
+      ctx.fillText(item.price === null ? '--' : `$${item.price}`, px+panelW-25, iy+4);
+    });
+
+    ctx.textAlign = 'center';
+    ctx.font = '12px Courier New';
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.fillText('W/S / Stick: navegar   |   Enter / 🎮 A: comprar   |   Q / 🎮 B: fechar', W/2, py + panelH - 14);
+    ctx.textAlign = 'left';
+  }
+
+  function drawTravelMenu() {
+    const panelW = 500, panelH = 320;
+    const px = W/2 - panelW/2, py = H/2 - panelH/2;
+    ctx.fillStyle = 'rgba(10,18,12,0.96)';
+    ctx.fillRect(px, py, panelW, panelH);
+    ctx.strokeStyle = '#d4a059'; ctx.lineWidth = 3;
+    ctx.strokeRect(px, py, panelW, panelH);
+
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 22px Courier New';
+    ctx.fillStyle = '#ffc83b';
+    ctx.fillText('🚚 VIAGEM DE CAMINHONETE', W/2, py + 40);
+
+    const dests = getTravelDestinations();
+    dests.forEach((d, i) => {
+      const iy = py + 95 + i*65;
+      const selected = i === travelIndex;
+      ctx.fillStyle = selected ? 'rgba(212,160,89,0.3)' : 'rgba(0,0,0,0.3)';
+      ctx.fillRect(px + 20, iy, panelW - 40, 52);
+      if (selected) { ctx.strokeStyle = '#ffc83b'; ctx.lineWidth = 2; ctx.strokeRect(px + 20, iy, panelW - 40, 52); }
+
+      ctx.textAlign = 'left';
+      ctx.font = 'bold 15px Courier New';
+      ctx.fillStyle = d.unlocked ? (selected ? '#ffc83b' : '#fff') : '#777';
+      ctx.fillText((selected ? '▶ ' : '  ') + d.name + (d.unlocked ? '' : ' 🔒'), px + 35, iy + 22);
+
+      ctx.font = '11px Courier New';
+      ctx.fillStyle = d.unlocked ? '#bbb' : '#666';
+      ctx.fillText(d.desc, px + 35, iy + 40);
+    });
+
+    ctx.textAlign = 'center';
+    ctx.font = '12px Courier New';
+    ctx.fillStyle = '#aaa';
+    ctx.fillText('W/S: navegar  |  ENTER / 🎮 A: Viajar  |  ESC / R / 🎮 B: Cancelar', W/2, py + panelH - 18);
+    ctx.textAlign = 'left';
+  }
+
+  function drawAdminMenu() {
+    const panelW = 460, panelH = 340;
+    const px = W/2 - panelW/2, py = H/2 - panelH/2;
+    ctx.fillStyle = 'rgba(20,5,25,0.96)';
+    ctx.fillRect(px, py, panelW, panelH);
+    ctx.strokeStyle = '#ff00ff'; ctx.lineWidth = 3;
+    ctx.strokeRect(px, py, panelW, panelH);
+
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 22px Courier New';
+    ctx.fillStyle = '#ff77ff';
+    ctx.fillText('👑 PAINEL ADMIN (CHEATS)', W/2, py + 35);
+
+    const opts = [
+      `Invencibilidade (GodMode): ${godMode?'ATIVADO (ON)':'DESATIVADO'}`,
+      `Dar +500 Moedas (Atual: $${currency})`,
+      `Alternar Dia / Noite (Fase Atual: ${phase})`,
+      `Avançar +1 Dia (Dia Atual: ${dayIndex})`,
+      `Restaurar Vida & Gerador Totalmente`,
+      `Teleportar para Próxima Área (${currentArea})`,
+    ];
+
+    opts.forEach((opt, i) => {
+      const iy = py + 80 + i*38;
+      const selected = i === adminIndex;
+      ctx.fillStyle = selected ? 'rgba(255,0,255,0.25)' : 'transparent';
+      ctx.fillRect(px + 15, iy - 16, panelW - 30, 32);
+      if (selected) { ctx.strokeStyle = '#ff77ff'; ctx.lineWidth = 1.5; ctx.strokeRect(px + 15, iy - 16, panelW - 30, 32); }
+
+      ctx.textAlign = 'left';
+      ctx.font = 'bold 13px Courier New';
+      ctx.fillStyle = selected ? '#ffc83b' : '#fff';
+      ctx.fillText((selected ? '▶ ' : '  ') + opt, px + 25, iy + 4);
+    });
+
+    ctx.textAlign = 'center';
+    ctx.font = '12px Courier New';
+    ctx.fillStyle = '#aaa';
+    ctx.fillText('F2: Fechar Painel  |  ENTER / 🎮 A: Executar Cheat', W/2, py + panelH - 16);
+    ctx.textAlign = 'left';
+  }
+
+  function drawEndScreen(text, color) {
+    ctx.fillStyle = 'rgba(0,0,0,0.78)';
+    ctx.fillRect(0,0,W,H);
+    ctx.textAlign = 'center';
+    ctx.save();
+    ctx.shadowColor = color; ctx.shadowBlur = 20;
+    ctx.fillStyle = color;
+    ctx.font = 'bold 44px Courier New';
+    ctx.fillText(text, W/2, H/2 - 20);
+    ctx.restore();
+
+    ctx.font = 'bold 16px Courier New';
+    ctx.fillStyle = '#ffc83b';
+    if (gameMode === 'endless') {
+      ctx.fillText(`Você sobreviveu por ${dayIndex} dias na floresta!`, W/2, H/2 + 20);
+    }
+    ctx.font = '16px Courier New';
+    ctx.fillStyle = '#fff';
+    ctx.fillText('Pressione ENTER ou 🎮 A para voltar ao menu', W/2, H/2 + 55);
+    ctx.textAlign = 'left';
+  }
+
+  function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
+
+  window.addEventListener('keydown', (e) => {
+    const key = e.key.toLowerCase();
+    if (e.key === 'F2') { adminMenuOpen = !adminMenuOpen; e.preventDefault(); return; }
+
+    if (['w','a','s','d','r','e','f'].includes(key)) { keys[key] = true; e.preventDefault(); }
+    if (key === 'q') { toggleShop(); e.preventDefault(); }
+    if (key === 'f') { skipDay(); e.preventDefault(); }
+
+    if (shopOpen && (key === 'w' || key === 'arrowup')) { const n = getShopItems().length; shopIndex = (shopIndex - 1 + n) % n; e.preventDefault(); }
+    if (shopOpen && (key === 's' || key === 'arrowdown')) { const n = getShopItems().length; shopIndex = (shopIndex + 1) % n; e.preventDefault(); }
+
+    if (travelMenuOpen && (key === 'w' || key === 'arrowup')) { const n = getTravelDestinations().length; travelIndex = (travelIndex - 1 + n) % n; e.preventDefault(); }
+    if (travelMenuOpen && (key === 's' || key === 'arrowdown')) { const n = getTravelDestinations().length; travelIndex = (travelIndex + 1) % n; e.preventDefault(); }
+
+    if (gameState === 'menu' && (key === 'w' || key === 'arrowup')) { menuIndex = (menuIndex - 1 + MODES.length) % MODES.length; e.preventDefault(); }
+    if (gameState === 'menu' && (key === 's' || key === 'arrowdown')) { menuIndex = (menuIndex + 1) % MODES.length; e.preventDefault(); }
+
+    if (key === 'enter' || key === ' ') {
+      if (gameState === 'menu') startGame(MODES[menuIndex].key);
+      else if (gameState === 'win' || gameState === 'gameover') gameState = 'menu';
+      else if (travelMenuOpen) {
+        const dests = getTravelDestinations();
+        if (dests[travelIndex].unlocked) switchArea(dests[travelIndex].key);
+      }
+      else if (shopOpen) purchaseSelected();
+      e.preventDefault();
+    }
+  });
+
+  window.addEventListener('keyup', (e) => {
+    const key = e.key.toLowerCase();
+    if (['w','a','s','d','r','e','f'].includes(key)) { keys[key] = false; e.preventDefault(); }
+  });
+
+  window.addEventListener('mousemove', (e) => { mousePos.x = e.clientX; mousePos.y = e.clientY; mouseMoved = true; });
+  window.addEventListener('mousedown', (e) => {
+    if (e.button === 0) {
+      if (gameState === 'menu') startGame(MODES[menuIndex].key);
+      else if (gameState === 'win' || gameState === 'gameover') gameState = 'menu';
+      else if (travelMenuOpen) {
+        const dests = getTravelDestinations();
+        if (dests[travelIndex].unlocked) switchArea(dests[travelIndex].key);
+      }
+      else if (shopOpen) purchaseSelected();
+      else mouseDown = true;
+    }
+  });
+  window.addEventListener('mouseup', (e) => { if (e.button === 0) mouseDown = false; });
+  window.addEventListener('contextmenu', e => e.preventDefault());
+
+  window.addEventListener('gamepadconnected', () => { gamepadConnected = true; });
+  window.addEventListener('gamepaddisconnected', () => { gamepadConnected = false; });
+
+  window.addEventListener('resize', resize);
+
+  resize();
+  gameLoop();
+})();
+</script>
+</body>
+</html>

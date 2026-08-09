@@ -1,63 +1,41 @@
-/* ============================================
-   CARTRIDGE-8 — Engine Principal v1.2
-   Console OS v1.2, 3D Cartridge Rack, Synthesizer & Pixel Art Studio
+﻿/* ============================================
+   CARTRIDGE-8 â€” Engine Principal v1.3
+   Console OS v1.3, 3D Cartridge Rack, Synthesizer & Pixel Art Studio
    ============================================ */
 
 'use strict';
 
 const STATE = {
   BOOT:             'BOOT',
+  PROFILE_SELECT:   'PROFILE_SELECT',
   MENU:             'MENU',
   CARTRIDGE_SELECT: 'CARTRIDGE_SELECT',
   APPS:             'APPS',
   LIBRARY:          'LIBRARY',
+  PROFILES:         'PROFILES',
   CONTROLLER:       'CONTROLLER',
   OPTIONS:          'OPTIONS',
   ABOUT:            'ABOUT',
   GAME:             'GAME',
 };
 
-const BUILTIN_GAMES = [
-  {
-    id:      'demo',
-    name:    'STAR BLASTER',
-    dev:     'Antigravity Studios',
-    version: '1.0',
-    desc:    'Destrua os asteroides antes que cheguem à Terra! Use setas/WASD para mover e ESPAÇO/Z para atirar.',
-    color:   '#0d1f3c',
-    genre:   'Shooter Arcade',
-    year:    '2026',
-  },
-  {
-    id:      'airsoft simulator',
-    name:    'AIRSOFT SIMULATOR',
-    dev:     'asafgamery',
-    version: '1.0',
-    desc:    'FPS Top-Down de Operador de Airsoft.',
-    color:   '#2a4d36',
-    genre:   'FPS Top-Down',
-    year:    '2026',
-  },
-  {
-    id: 'super aventureiro',
-    name: 'SUPER AVENTUREIRO',
-    dev: 'asafgamery',
-    version: '1.0',
-    desc: 'Jogo de plataforma e ação retrô.',
-    color: '#3a2050',
-    genre: 'Plataforma',
-    year: '2026',
-  },
-  {
-    id: 'super aventureiro 2',
-    name: 'SUPER AVENTUREIRO 2',
-    dev: 'asafgamery',
-    version: '1.0',
-    desc: 'Jogo de plataforma com novas fases.',
-    color: '#502030',
-    genre: 'Plataforma',
-    year: '2026',
-  }
+const MODE_INFO = {
+  sandbox: 'SANDBOX: Todos os jogos da biblioteca ficam desbloqueados desde o inÃ­cio. Ideal para explorar livremente.',
+  hardcore: 'HARDCORE: Apenas o primeiro jogo comeÃ§a desbloqueado. VocÃª ganha 1 moeda a cada 30 segundos (mesmo no menu). Cada jogo custa 10 moedas e pode ser comprado na biblioteca.',
+};
+
+// Metadados dos jogos sÃ£o carregados exclusivamente via games/<id>/info.txt
+// Esta lista Ã© usada apenas como fallback quando os fetchs falham (ex: protocolo file://).
+// ContÃ©m sÃ³ id + color â€” Ãºnico dado visual necessÃ¡rio sem rede (o restante vem do info.txt).
+const FALLBACK_GAMES = [
+  { id: 'demo',                                color: '#0d1f3c' },
+  { id: 'airsoft simulator',                   color: '#2a4d36' },
+  { id: 'super aventureiro',                   color: '#3a2050' },
+  { id: 'super aventureiro 2',                 color: '#502030' },
+  { id: 'super aventureiro 2 beach expansion', color: '#48CAE4' },
+  { id: 'super aventureiro 2 agent edition',   color: '#1a1a2e' },
+  { id: 'zombie rush',                         color: '#2d4a27' },
+  { id: 'sekiverse',                           color: '#1a0a1a' },
 ];
 
 const C8 = {
@@ -70,9 +48,24 @@ const C8 = {
     brightness:       100,
   },
 
+  profile: {
+    active:        null,
+    list:          [],
+    selectedIndex: 0,
+    editorOpen:    false,
+    editorMode:    'create',
+    editingId:     null,
+    nameInput:     '',
+    selectedMode:  'sandbox',
+    infoVisible:   null,
+    editorSelectedIndex: 0,
+    managerSelected: 0,
+    managerSelectionIndex: 0,
+  },
+
   menu: {
     selectedIndex: 0,
-    items: ['play', 'apps', 'library', 'controller', 'options', 'about'],
+    items: ['play', 'apps', 'library', 'profiles', 'controller', 'options', 'about'],
   },
 
   cartridgeSelect: {
@@ -89,8 +82,11 @@ const C8 = {
 
   options: {
     selectedIndex: 0,
-    items: ['crt', 'scanlines', 'noise', 'brightness'],
+    items: ['crt', 'scanlines', 'noise', 'brightness', 'export-profile', 'import-profile'],
   },
+
+  coinTimer: null,
+  gameIdsCache: [],
 
   terminal: {
     input:   '',
@@ -123,15 +119,39 @@ const dom = {
 
   views: {
     BOOT:             $('view-terminal'),
+    PROFILE_SELECT:   $('view-profile-select'),
     MENU:             $('view-menu'),
     CARTRIDGE_SELECT: $('view-cartridge'),
     APPS:             $('view-apps'),
     LIBRARY:          $('view-library'),
+    PROFILES:         $('view-profiles'),
     CONTROLLER:       $('view-controller'),
     OPTIONS:          $('view-options'),
     ABOUT:            $('view-about'),
     GAME:             $('game-frame'),
   },
+
+  profileSelectList:   $('profile-select-list'),
+  profileSelectEmpty:  $('profile-select-empty'),
+  profileSelectCreate: $('profile-select-create'),
+  profileSelectCreateFirst: $('profile-select-create-first'),
+  profilesManagerList: $('profiles-manager-list'),
+  profilesCountBadge:  $('profiles-count-badge'),
+  profilesBtnCreate:   $('profiles-btn-create'),
+  profilesBtnEdit:     $('profiles-btn-edit'),
+  profileEditorOverlay:$('profile-editor-overlay'),
+  profileEditorTitle:  $('profile-editor-title'),
+  profileNameText:     $('profile-name-text'),
+  profileNameInput:    $('profile-name-input'),
+  profileEditorSave:   $('profile-editor-save'),
+  profileEditorDelete: $('profile-editor-delete'),
+  profileEditorClose:  $('profile-editor-close'),
+  modeSandbox:        $('mode-sandbox'),
+  modeHardcore:       $('mode-hardcore'),
+  profileModeInfo:     $('profile-mode-info'),
+  profileMobileKb:     $('profile-mobile-keyboard'),
+  profileImportFile:   $('profile-import-file'),
+  menuProfileBadge:    $('menu-profile-badge'),
 
   termOut:        $('terminal-output'),
   termInputText:  $('terminal-input-text'),
@@ -185,6 +205,550 @@ const dom = {
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+const isMobileInput = () =>
+  ('ontouchstart' in window || navigator.maxTouchPoints > 0) &&
+  window.matchMedia('(max-width: 1024px)').matches;
+
+// ============================================================
+//  PROFILE SYSTEM (IndexedDB)
+// ============================================================
+const PDB = () => window.C8ProfileDB;
+
+async function refreshGameIdsCache() {
+  C8.gameIdsCache = await fetchGamesManifest();
+  return C8.gameIdsCache;
+}
+
+function getFirstGameId() {
+  return C8.gameIdsCache[0] || FALLBACK_GAMES[0]?.id || 'demo';
+}
+
+function profileUnlocked(gameId) {
+  if (!C8.profile.active) return false;
+  return PDB().isGameUnlocked(C8.profile.active, gameId, C8.gameIdsCache);
+}
+
+function updateMenuProfileBadge() {
+  if (!dom.menuProfileBadge) return;
+  const p = C8.profile.active;
+  if (!p) {
+    dom.menuProfileBadge.textContent = '';
+    return;
+  }
+  const modeLabel = p.mode === 'hardcore' ? 'HARDCORE' : 'SANDBOX';
+  let html = `ðŸ‘¤ ${p.name} Â· ${modeLabel}`;
+  if (p.mode === 'hardcore') {
+    html += `<span class="badge-coins">ðŸª™ ${p.economy.coins}</span>`;
+  }
+  dom.menuProfileBadge.innerHTML = html;
+}
+
+function stopCoinTimer() {
+  if (C8.coinTimer) {
+    clearInterval(C8.coinTimer);
+    C8.coinTimer = null;
+  }
+}
+
+function startCoinTimer() {
+  stopCoinTimer();
+  const p = C8.profile.active;
+  if (!p || p.mode !== 'hardcore') return;
+  C8.coinTimer = setInterval(async () => {
+    if (!C8.profile.active || C8.profile.active.mode !== 'hardcore') return;
+    C8.profile.active = await PDB().addCoin(C8.profile.active);
+    updateMenuProfileBadge();
+    if (C8.state === STATE.LIBRARY) onEnterLibrary();
+  }, PDB().C8_DB.COIN_INTERVAL_MS);
+}
+
+async function activateProfile(profile) {
+  await PDB().saveProfile(profile);
+  await PDB().setLastActiveProfileId(profile.id);
+  C8.profile.active = profile;
+  updateMenuProfileBadge();
+  startCoinTimer();
+}
+
+async function loadProfilesList() {
+  C8.profile.list = await PDB().listProfiles();
+  return C8.profile.list;
+}
+
+function renderProfileCard(profile, opts = {}) {
+  const el = document.createElement('button');
+  el.type = 'button';
+  el.className = 'profile-card';
+  if (opts.active) el.classList.add('active-profile');
+  if (opts.selected) el.classList.add('selected');
+  el.dataset.profileId = profile.id;
+  const initial = (profile.name || '?').charAt(0).toUpperCase();
+  const modeCls = profile.mode === 'hardcore' ? 'mode-hardcore' : '';
+  el.innerHTML = `
+    <div class="profile-avatar">${initial}</div>
+    <div class="profile-card-name">${escapeHtml(profile.name)}</div>
+    <div class="profile-card-mode ${modeCls}">${profile.mode.toUpperCase()}</div>
+  `;
+  return el;
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+async function onEnterProfileSelect() {
+  await refreshGameIdsCache();
+  await loadProfilesList();
+  renderProfileSelectScreen();
+}
+
+function renderProfileSelectScreen() {
+  const list = C8.profile.list;
+  dom.profileSelectList.innerHTML = '';
+  C8.profile.selectedIndex = 0;
+
+  if (!list.length) {
+    dom.profileSelectEmpty.style.display = 'flex';
+    dom.profileSelectCreate.style.display = 'none';
+    C8.profile.selectedIndex = 0;
+    syncProfileSelectSelectionUI();
+    return;
+  }
+
+  dom.profileSelectEmpty.style.display = 'none';
+  list.forEach((p, i) => {
+    const card = renderProfileCard(p, {
+      active: C8.profile.active?.id === p.id,
+      selected: i === C8.profile.selectedIndex,
+    });
+    card.addEventListener('click', () => selectProfileFromBoot(p.id));
+    dom.profileSelectList.appendChild(card);
+  });
+
+  if (list.length < PDB().C8_DB.MAX_PROFILES) {
+    dom.profileSelectCreate.style.display = 'block';
+  } else {
+    dom.profileSelectCreate.style.display = 'none';
+  }
+
+  syncProfileSelectSelectionUI();
+}
+
+function syncProfileSelectSelectionUI() {
+  const list = C8.profile.list;
+  const listLen = list.length;
+
+  dom.profileSelectList.querySelectorAll('.profile-card').forEach((c, i) => {
+    c.classList.toggle('selected', i === C8.profile.selectedIndex);
+  });
+
+  const canCreate = listLen < PDB().C8_DB.MAX_PROFILES;
+  const createIndex = listLen;
+  const createFocused = canCreate && C8.profile.selectedIndex === createIndex && listLen > 0;
+  const createFirstFocused = listLen === 0 && C8.profile.selectedIndex === 0;
+
+  if (dom.profileSelectCreate) dom.profileSelectCreate.classList.toggle('focused', createFocused);
+  if (dom.profileSelectCreateFirst) dom.profileSelectCreateFirst.classList.toggle('focused', createFirstFocused);
+}
+
+async function selectProfileFromBoot(profileId) {
+  const profile = await PDB().getProfile(profileId);
+  if (!profile) return;
+  playSelectSound();
+  await activateProfile(profile);
+  setState(STATE.MENU);
+}
+
+async function onEnterProfilesManager() {
+  await loadProfilesList();
+  renderProfilesManager();
+}
+
+function renderProfilesManager() {
+  const list = C8.profile.list;
+  dom.profilesManagerList.innerHTML = '';
+  dom.profilesCountBadge.textContent = `${list.length}/${PDB().C8_DB.MAX_PROFILES}`;
+
+  if (!list.length) {
+    dom.profilesManagerList.innerHTML =
+      '<div class="profile-empty-msg"><p>Nenhum perfil. Crie um para comeÃ§ar.</p></div>';
+    C8.profile.managerSelected = -1;
+    C8.profile.managerSelectionIndex = 0;
+    syncProfilesManagerSelectionUI();
+    return;
+  }
+
+  const canCreate = list.length < PDB().C8_DB.MAX_PROFILES;
+  const total = list.length + (canCreate ? 2 : 1);
+  if (C8.profile.managerSelectionIndex < 0 || C8.profile.managerSelectionIndex >= total) {
+    C8.profile.managerSelectionIndex = 0;
+  }
+
+  list.forEach((p, i) => {
+    const card = renderProfileCard(p, {
+      active: C8.profile.active?.id === p.id,
+      selected: i === C8.profile.managerSelectionIndex,
+    });
+    card.addEventListener('click', () => {
+      C8.profile.managerSelectionIndex = i;
+      playNavSound();
+      renderProfilesManager();
+    });
+    card.addEventListener('dblclick', () => switchToProfile(p.id));
+    dom.profilesManagerList.appendChild(card);
+  });
+
+  dom.profilesBtnCreate.disabled = !canCreate;
+  dom.profilesBtnCreate.style.opacity = canCreate ? '1' : '0.45';
+  syncProfilesManagerSelectionUI();
+}
+
+function syncProfilesManagerSelectionUI() {
+  const listLen = C8.profile.list.length;
+  const activeCard = dom.profilesManagerList.querySelectorAll('.profile-card');
+  activeCard.forEach((c, i) => {
+    c.classList.toggle('selected', i === C8.profile.managerSelectionIndex && C8.profile.managerSelectionIndex < listLen);
+  });
+
+  const canCreate = listLen < PDB().C8_DB.MAX_PROFILES;
+  const createFocused = listLen === 0 ? C8.profile.managerSelectionIndex === 0 : C8.profile.managerSelectionIndex === listLen && canCreate;
+  const editFocused = listLen === 0 ? false : (!canCreate && C8.profile.managerSelectionIndex === listLen) || (canCreate && C8.profile.managerSelectionIndex === listLen + 1);
+
+  if (dom.profilesBtnCreate) dom.profilesBtnCreate.classList.toggle('focused', createFocused);
+  if (dom.profilesBtnEdit) dom.profilesBtnEdit.classList.toggle('focused', editFocused);
+}
+
+async function switchToProfile(profileId) {
+  const profile = await PDB().getProfile(profileId);
+  if (!profile) return;
+  playSelectSound();
+  await activateProfile(profile);
+  setState(STATE.MENU);
+}
+
+function openProfileEditor(mode, profileId = null) {
+  C8.profile.editorOpen = true;
+  C8.profile.editorMode = mode;
+  C8.profile.editingId = profileId;
+  C8.profile.nameInput = '';
+  C8.profile.selectedMode = 'sandbox';
+  C8.profile.infoVisible = null;
+
+  if (mode === 'edit' && profileId) {
+    const p = C8.profile.list.find(x => x.id === profileId);
+    if (p) {
+      C8.profile.nameInput = p.name;
+      C8.profile.selectedMode = p.mode;
+    }
+    dom.profileEditorTitle.textContent = 'EDITAR PERFIL';
+    dom.profileEditorDelete.style.display = 'block';
+  } else {
+    dom.profileEditorTitle.textContent = 'CRIAR PERFIL';
+    dom.profileEditorDelete.style.display = 'none';
+  }
+
+  C8.profile.editorSelectedIndex = 0;
+  syncProfileEditorUI();
+  syncProfileEditorSelectionUI();
+  dom.profileEditorOverlay.classList.add('open');
+  dom.profileEditorOverlay.setAttribute('aria-hidden', 'false');
+
+  if (isMobileInput()) {
+    document.body.classList.add('profile-mobile-input');
+    dom.profileMobileKb.setAttribute('aria-hidden', 'false');
+    if (dom.profileNameInput) {
+      dom.profileNameInput.value = C8.profile.nameInput;
+      setTimeout(() => dom.profileNameInput.focus(), 100);
+    }
+  } else {
+    document.body.classList.remove('profile-mobile-input');
+    dom.profileMobileKb.setAttribute('aria-hidden', 'true');
+  }
+}
+
+function closeProfileEditor() {
+  C8.profile.editorOpen = false;
+  dom.profileEditorOverlay.classList.remove('open');
+  dom.profileEditorOverlay.setAttribute('aria-hidden', 'true');
+  dom.profileModeInfo.style.display = 'none';
+  document.body.classList.remove('profile-mobile-input');
+  if (dom.profileNameInput) dom.profileNameInput.blur();
+}
+
+function syncProfileEditorUI() {
+  dom.profileNameText.textContent = C8.profile.nameInput;
+  if (dom.profileNameInput) dom.profileNameInput.value = C8.profile.nameInput;
+
+  $$('.profile-mode-card').forEach(card => {
+    card.classList.toggle('selected', card.dataset.mode === C8.profile.selectedMode);
+  });
+
+  if (C8.profile.infoVisible) {
+    dom.profileModeInfo.textContent = MODE_INFO[C8.profile.infoVisible] || '';
+    dom.profileModeInfo.style.display = 'block';
+  } else {
+    dom.profileModeInfo.style.display = 'none';
+  }
+}
+
+function getProfileEditorNavItems() {
+  const items = [dom.modeSandbox, dom.modeHardcore, dom.profileEditorSave];
+  if (C8.profile.editorMode === 'edit') items.push(dom.profileEditorDelete);
+  items.push(dom.profileEditorClose);
+  return items.filter(Boolean);
+}
+
+function syncProfileEditorSelectionUI() {
+  const items = getProfileEditorNavItems();
+  items.forEach((el, i) => {
+    el.classList.toggle('focused', i === C8.profile.editorSelectedIndex);
+  });
+}
+
+function profileEditorNavigate(dir) {
+  const items = getProfileEditorNavItems();
+  if (!items.length) return;
+  C8.profile.editorSelectedIndex = (C8.profile.editorSelectedIndex + dir + items.length) % items.length;
+  playNavSound();
+  syncProfileEditorSelectionUI();
+}
+
+function profileEditorConfirm() {
+  const items = getProfileEditorNavItems();
+  const current = items[C8.profile.editorSelectedIndex];
+  if (!current) return;
+
+  if (current === dom.modeSandbox || current === dom.modeHardcore) {
+    C8.profile.selectedMode = current.dataset.mode;
+    playNavSound();
+    syncProfileEditorUI();
+    syncProfileEditorSelectionUI();
+    return;
+  }
+
+  if (current === dom.profileEditorSave) {
+    saveProfileEditor();
+    return;
+  }
+
+  if (current === dom.profileEditorDelete) {
+    deleteProfileEditor();
+    return;
+  }
+
+  if (current === dom.profileEditorClose) {
+    closeProfileEditor();
+  }
+}
+
+function profileNameKey(key) {
+  if (key === 'Backspace') {
+    C8.profile.nameInput = C8.profile.nameInput.slice(0, -1);
+  } else if (key.length === 1 && C8.profile.nameInput.length < 24) {
+    C8.profile.nameInput += key;
+  }
+  syncProfileEditorUI();
+  if (dom.profileNameInput) dom.profileNameInput.value = C8.profile.nameInput;
+}
+
+async function saveProfileEditor() {
+  const name = C8.profile.nameInput.trim();
+  if (!name) {
+    playBeep(180, 0.1, 'sawtooth', 0.12);
+    return;
+  }
+
+  if (C8.profile.editorMode === 'create') {
+    await refreshGameIdsCache();
+    const result = await PDB().createProfile(name, C8.profile.selectedMode, getFirstGameId());
+    if (!result.ok) {
+      playBeep(180, 0.1, 'sawtooth', 0.12);
+      return;
+    }
+    playSelectSound();
+    await activateProfile(result.profile);
+    closeProfileEditor();
+    if (C8.state === STATE.PROFILE_SELECT || C8.state === STATE.PROFILES) {
+      if (C8.state === STATE.PROFILE_SELECT) setState(STATE.MENU);
+      else renderProfilesManager();
+    }
+  } else if (C8.profile.editingId) {
+    const result = await PDB().updateProfile(C8.profile.editingId, {
+      name,
+      mode: C8.profile.selectedMode,
+    });
+    if (!result.ok) return;
+    let profile = result.profile;
+    if (profile.mode === 'hardcore' && !profile.progress.unlockedGameIds.length) {
+      profile.progress.unlockedGameIds = [getFirstGameId()];
+      await PDB().saveProfile(profile);
+      await PDB().getOrCreateProfileGame(profile.id, getFirstGameId());
+    }
+    playSelectSound();
+    if (C8.profile.active?.id === profile.id) {
+      await activateProfile(profile);
+    }
+    await loadProfilesList();
+    closeProfileEditor();
+    if (C8.state === STATE.PROFILES) renderProfilesManager();
+    else renderProfileSelectScreen();
+  }
+}
+
+async function deleteProfileEditor() {
+  if (!C8.profile.editingId) return;
+  if (!confirm('Excluir este perfil permanentemente?')) return;
+  await PDB().deleteProfile(C8.profile.editingId);
+  if (C8.profile.active?.id === C8.profile.editingId) {
+    C8.profile.active = null;
+    stopCoinTimer();
+    updateMenuProfileBadge();
+  }
+  await loadProfilesList();
+  closeProfileEditor();
+  if (C8.state === STATE.PROFILES) renderProfilesManager();
+  else if (C8.state === STATE.MENU && !C8.profile.list.length) setState(STATE.PROFILE_SELECT);
+  else renderProfileSelectScreen();
+}
+
+async function exportActiveProfileZip() {
+  if (!C8.profile.active) {
+    playBeep(180, 0.08, 'sawtooth', 0.1);
+    return;
+  }
+  const data = await PDB().exportProfileData(C8.profile.active.id);
+  if (!data || typeof JSZip === 'undefined') return;
+
+  const zip = new JSZip();
+  zip.file('manifest.json', JSON.stringify({
+    format: 'cartridge8-profile',
+    version: 1,
+    profileName: data.profile.name,
+    exportedAt: data.exportedAt,
+  }, null, 2));
+  zip.file('profile.json', JSON.stringify(data, null, 2));
+
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const safeName = data.profile.name.replace(/[^\w\- ]+/g, '').trim() || 'perfil';
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `c8-${safeName}.zip`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  playSelectSound();
+}
+
+async function importProfileFromZip(file) {
+  if (!file || typeof JSZip === 'undefined') return;
+  try {
+    const zip = await JSZip.loadAsync(file);
+    const profileFile = zip.file('profile.json');
+    if (!profileFile) throw new Error('missing profile.json');
+    const text = await profileFile.async('string');
+    const data = JSON.parse(text);
+    const result = await PDB().importProfileData(data, { activate: true });
+    if (!result.ok) {
+      playBeep(180, 0.1, 'sawtooth', 0.12);
+      alert(result.reason === 'max' ? 'Limite de 5 perfis atingido.' : 'Arquivo invÃ¡lido.');
+      return;
+    }
+    playSelectSound();
+    await loadProfilesList();
+    await activateProfile(result.profile);
+    updateMenuProfileBadge();
+  } catch {
+    playBeep(180, 0.1, 'sawtooth', 0.12);
+    alert('NÃ£o foi possÃ­vel importar o ZIP.');
+  }
+}
+
+function setupProfileInteractions() {
+  if (dom.profileSelectCreate) {
+    dom.profileSelectCreate.addEventListener('click', () => {
+      playNavSound();
+      openProfileEditor('create');
+    });
+  }
+  if (dom.profileSelectCreateFirst) {
+    dom.profileSelectCreateFirst.addEventListener('click', () => {
+      playNavSound();
+      openProfileEditor('create');
+    });
+  }
+  if (dom.profilesBtnCreate) {
+    dom.profilesBtnCreate.addEventListener('click', () => {
+      playNavSound();
+      openProfileEditor('create');
+    });
+  }
+  if (dom.profilesBtnEdit) {
+    dom.profilesBtnEdit.addEventListener('click', () => {
+      const p = C8.profile.list[C8.profile.managerSelected];
+      if (!p) return;
+      playNavSound();
+      openProfileEditor('edit', p.id);
+    });
+  }
+  if (dom.profileEditorClose) {
+    dom.profileEditorClose.addEventListener('click', () => {
+      playNavSound();
+      closeProfileEditor();
+    });
+  }
+  if (dom.profileEditorSave) {
+    dom.profileEditorSave.addEventListener('click', saveProfileEditor);
+  }
+  if (dom.profileEditorDelete) {
+    dom.profileEditorDelete.addEventListener('click', deleteProfileEditor);
+  }
+
+  $$('.profile-mode-card').forEach(card => {
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('.profile-info-btn')) return;
+      C8.profile.selectedMode = card.dataset.mode;
+      playNavSound();
+      syncProfileEditorUI();
+    });
+  });
+
+  $$('.profile-info-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const key = btn.dataset.info;
+      C8.profile.infoVisible = C8.profile.infoVisible === key ? null : key;
+      playNavSound();
+      syncProfileEditorUI();
+    });
+  });
+
+  $$('.profile-kb-key').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      profileNameKey(btn.dataset.key);
+      playNavSound();
+    });
+  });
+
+  if (dom.profileNameInput) {
+    dom.profileNameInput.addEventListener('input', () => {
+      C8.profile.nameInput = dom.profileNameInput.value.slice(0, 24);
+      syncProfileEditorUI();
+    });
+  }
+
+  if (dom.profileImportFile) {
+    dom.profileImportFile.addEventListener('change', async () => {
+      const file = dom.profileImportFile.files?.[0];
+      dom.profileImportFile.value = '';
+      if (file) await importProfileFromZip(file);
+    });
+  }
+}
+
 // ============================================================
 //  WEB AUDIO SYNTHESIZER & SFX ENGINE
 // ============================================================
@@ -235,7 +799,7 @@ function playInsertCartSound() {
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
-    // Som mecânico de clique do cartucho
+    // Som mecÃ¢nico de clique do cartucho
     playBeep(120, 0.08, 'sawtooth', 0.15);
     setTimeout(() => playBeep(280, 0.06, 'triangle', 0.12), 40);
     setTimeout(() => playBeep(880, 0.12, 'square', 0.1), 90);
@@ -306,6 +870,8 @@ function setState(newState) {
 
   switch (newState) {
     case STATE.MENU:             onEnterMenu(); break;
+    case STATE.PROFILE_SELECT:   onEnterProfileSelect(); break;
+    case STATE.PROFILES:         onEnterProfilesManager(); break;
     case STATE.CARTRIDGE_SELECT: onEnterCartridgeSelect(); break;
     case STATE.APPS:             onEnterApps(); break;
     case STATE.LIBRARY:          onEnterLibrary(); break;
@@ -349,13 +915,13 @@ async function bootIntro() {
 
   await sleep(100);
   await addLine();
-  await typeLine('CARTRIDGE-8 BIOS v1.2.0 (REVISION 2026)', 18);
+  await typeLine('CARTRIDGE-8 BIOS v1.3.0 (REVISION 2026)', 18);
   await sleep(120);
-  await addLine('© 2026 asafgameryDEV. Todos os direitos reservados.', 'dim');
+  await addLine('Â© 2026 asafgameryDEV. Todos os direitos reservados.', 'dim');
   await sleep(250);
   await addLine();
 
-  await addLine('Verificando hardware e periféricos v1.2...', 'dim');
+  await addLine('Verificando hardware e perifÃ©ricos v1.3...', 'dim');
   await sleep(350);
 
   const checks = [
@@ -364,7 +930,7 @@ async function bootIntro() {
     ['  VRAM : 8 KB detectada',     'ok', 90],
     ['  ESTANTE 3D: Pronta',        'ok', 90],
     ['  SINTETIZADOR: WebAudio OK', 'ok', 90],
-    ['  VÍDEO: Monitor CRT OK',     'ok', 90],
+    ['  VÃDEO: Monitor CRT OK',     'ok', 90],
   ];
   for (const [msg, cls, delay] of checks) {
     await addLine(msg, cls);
@@ -373,7 +939,7 @@ async function bootIntro() {
 
   await sleep(200);
   await addLine();
-  await typeLine('Sistema v1.2 pronto. Digite "boot" para iniciar.', 16);
+  await typeLine('Sistema v1.3 pronto. Digite "boot" para iniciar.', 16);
   await addLine();
 
   dom.termInputLine.style.display = 'flex';
@@ -389,14 +955,14 @@ async function runBoot() {
   await sleep(120);
   await addLine('> boot');
   await sleep(180);
-  await typeLine('Iniciando Cartridge-8 OS v1.2...', 18);
+  await typeLine('Iniciando Cartridge-8 OS v1.3...', 18);
   await sleep(150);
 
   const bar = document.createElement('div');
   bar.className = 'terminal-line progress';
   dom.termOut.appendChild(bar);
   for (let i = 0; i <= 20; i++) {
-    bar.textContent = `[${'█'.repeat(i)}${'░'.repeat(20 - i)}] ${(i * 5).toString().padStart(3)}%`;
+    bar.textContent = `[${'â–ˆ'.repeat(i)}${'â–‘'.repeat(20 - i)}] ${(i * 5).toString().padStart(3)}%`;
     dom.termOut.scrollTop = dom.termOut.scrollHeight;
     await sleep(30);
   }
@@ -404,10 +970,12 @@ async function runBoot() {
   playSelectSound();
   await sleep(200);
   await addLine();
-  await typeLine('SISTEMA V1.2 PRONTO. Bem-vindo ao Cartridge-8 OS!', 16);
+  await typeLine('SISTEMA V1.3 PRONTO. Bem-vindo ao Cartridge-8 OS!', 16);
   await sleep(400);
 
-  setState(STATE.MENU);
+  await refreshGameIdsCache();
+  await loadProfilesList();
+  setState(STATE.PROFILE_SELECT);
 }
 
 function handleTerminalKey(key) {
@@ -420,9 +988,9 @@ function handleTerminalKey(key) {
       runBoot();
     } else if (cmd === 'help') {
       addLine();
-      addLine('Comandos disponíveis:', 'dim');
-      addLine('  boot — Iniciar o sistema v1.2', 'ok');
-      addLine('  help — Esta mensagem', 'ok');
+      addLine('Comandos disponÃ­veis:', 'dim');
+      addLine('  boot â€” Iniciar o sistema v1.3', 'ok');
+      addLine('  help â€” Esta mensagem', 'ok');
       addLine();
     } else if (cmd !== '') {
       addLine(`> ${cmd}`);
@@ -443,6 +1011,7 @@ function handleTerminalKey(key) {
 // ============================================================
 function onEnterMenu() {
   updateMenuCarousel();
+  updateMenuProfileBadge();
 }
 
 function updateMenuCarousel() {
@@ -487,6 +1056,7 @@ function menuConfirm() {
     case 'play':       setState(STATE.CARTRIDGE_SELECT); break;
     case 'apps':       setState(STATE.APPS);             break;
     case 'library':    setState(STATE.LIBRARY);          break;
+    case 'profiles':   setState(STATE.PROFILES);         break;
     case 'controller': setState(STATE.CONTROLLER);       break;
     case 'options':    setState(STATE.OPTIONS);          break;
     case 'about':      setState(STATE.ABOUT);            break;
@@ -496,6 +1066,8 @@ function menuConfirm() {
 // ============================================================
 //  ESTANTE DE CARTUCHOS 3D (CARTRIDGE SELECT)
 // ============================================================
+// LÃª games/games.json para obter a lista de IDs.
+// Se falhar, retorna array vazio (nenhum cartucho na estante).
 async function fetchGamesManifest() {
   try {
     const res = await fetch('games/games.json');
@@ -503,20 +1075,23 @@ async function fetchGamesManifest() {
     const data = await res.json();
     if (Array.isArray(data.games) && data.games.length > 0) return data.games;
   } catch {}
-  return BUILTIN_GAMES.map(g => g.id);
+  return FALLBACK_GAMES.map(g => g.id);
 }
 
+// LÃª games/<id>/info.txt e constrÃ³i o objeto do jogo.
+// Campos suportados: name, dev, version, desc, color, genre, year.
+// Qualquer campo ausente usa o fallback genÃ©rico abaixo.
 async function fetchGameInfo(gameId) {
-  const builtin = BUILTIN_GAMES.find(g => g.id === gameId);
-  const defaults = builtin ? { ...builtin } : {
-    id: gameId,
-    name: gameId.toUpperCase(),
-    dev: 'Desconhecido',
+  const fallback = FALLBACK_GAMES.find(g => g.id === gameId);
+  const defaults = {
+    id:      gameId,
+    name:    gameId.toUpperCase(),
+    dev:     'Desconhecido',
     version: '1.0',
-    desc: 'Cartucho da biblioteca Cartridge-8.',
-    color: '#0d1f3c',
-    genre: 'Retro',
-    year: '2026',
+    desc:    'Cartucho da biblioteca Cartridge-8.',
+    color:   fallback?.color ?? '#0d1f3c',
+    genre:   'Retro',
+    year:    '2026',
   };
 
   try {
@@ -533,6 +1108,8 @@ async function fetchGameInfo(gameId) {
         if (k && v) info[k] = v;
       }
     });
+    // Garante que o id nunca vem do info.txt (sempre Ã© o nome da pasta)
+    info.id = gameId;
     return info;
   } catch {
     return defaults;
@@ -568,8 +1145,9 @@ function renderCartridgeRack() {
   const selIdx = C8.cartridgeSelect.selectedIndex;
 
   games.forEach((game, i) => {
+    const locked = !profileUnlocked(game.id);
     const cartEl = document.createElement('div');
-    cartEl.className = `c8-cartridge-3d${i === selIdx ? ' selected' : ''}`;
+    cartEl.className = `c8-cartridge-3d${i === selIdx ? ' selected' : ''}${locked ? ' locked' : ''}`;
     cartEl.setAttribute('role', 'listitem');
     cartEl.setAttribute('tabindex', '0');
 
@@ -590,7 +1168,7 @@ function renderCartridgeRack() {
         </div>
         <div class="cart-sticker-art">
           <div class="cart-sticker-title">${game.name}</div>
-          <div class="cart-seal-icon">★ OFFICIAL SEAL ★</div>
+          <div class="cart-seal-icon">â˜… OFFICIAL SEAL â˜…</div>
         </div>
       </div>
       <div class="cart-pins-wrap">
@@ -603,6 +1181,10 @@ function renderCartridgeRack() {
     `;
 
     cartEl.addEventListener('click', () => {
+      if (!profileUnlocked(game.id)) {
+        playBeep(180, 0.08, 'sawtooth', 0.1);
+        return;
+      }
       if (C8.cartridgeSelect.selectedIndex === i) {
         cartridgeConfirm();
       } else {
@@ -637,7 +1219,8 @@ function cartridgeNavigate(dir) {
 
 function cartridgeConfirm() {
   const game = C8.cartridgeSelect.games[C8.cartridgeSelect.selectedIndex];
-  if (game) launchGame(game);
+  if (game && profileUnlocked(game.id)) launchGame(game);
+  else playBeep(180, 0.08, 'sawtooth', 0.1);
 }
 
 function launchGame(game) {
@@ -661,7 +1244,7 @@ function onExitGame() {
 }
 
 // ============================================================
-//  APLICATIVOS DO CONSOLE v1.2 (SINTETIZADOR & PIXEL STUDIO)
+//  APLICATIVOS DO CONSOLE v1.3 (SINTETIZADOR & PIXEL STUDIO)
 // ============================================================
 function onEnterApps() {
   setupSynthApp();
@@ -703,7 +1286,7 @@ function setupSynthApp() {
     };
   });
 
-  // Botões de SFX
+  // BotÃµes de SFX
   $$('.sfx-btn').forEach(btn => {
     btn.onclick = () => {
       const sfx = btn.getAttribute('data-sfx');
@@ -833,21 +1416,56 @@ async function onEnterLibrary() {
   dom.libraryGrid.innerHTML = '';
   for (const id of ids) {
     const game = await fetchGameInfo(id);
+    const unlocked = profileUnlocked(id);
+    const isHardcore = C8.profile.active?.mode === 'hardcore';
     const el = document.createElement('div');
-    el.className = 'library-item';
+    el.className = `library-item${unlocked ? '' : ' locked'}`;
+
+    let actionsHtml = '';
+    if (isHardcore) {
+      if (unlocked) {
+        actionsHtml = '<span class="library-unlocked-tag">DESBLOQUEADO</span>';
+      } else {
+        const canBuy = (C8.profile.active?.economy.coins || 0) >= PDB().C8_DB.GAME_PRICE;
+        actionsHtml = `
+          <span class="library-price">ðŸª™ ${PDB().C8_DB.GAME_PRICE}</span>
+          <button type="button" class="library-buy-btn" data-game-id="${escapeHtml(id)}" ${canBuy ? '' : 'disabled'}>COMPRAR</button>
+        `;
+      }
+    } else if (unlocked) {
+      actionsHtml = '<span class="library-unlocked-tag">DESBLOQUEADO</span>';
+    }
+
     el.innerHTML = `
-      <div class="library-cover" style="background:${game.color || '#0d1f3c'};">🎮</div>
+      <div class="library-cover" style="background:${game.color || '#0d1f3c'};">ðŸŽ®</div>
       <div class="library-info">
-        <div class="library-name">${game.name}</div>
-        <div class="library-meta">DEV: ${game.dev} · ${game.genre} (${game.year || '2026'})</div>
+        <div class="library-name">${escapeHtml(game.name)}</div>
+        <div class="library-meta">DEV: ${escapeHtml(game.dev)} Â· ${escapeHtml(game.genre)} (${escapeHtml(game.year || '2026')})</div>
       </div>
+      <div class="library-actions">${actionsHtml}</div>
     `;
+
+    const buyBtn = el.querySelector('.library-buy-btn');
+    if (buyBtn) {
+      buyBtn.addEventListener('click', async () => {
+        const result = await PDB().purchaseGame(C8.profile.active, id);
+        if (result.ok) {
+          playSFX('coin');
+          C8.profile.active = result.profile;
+          updateMenuProfileBadge();
+          onEnterLibrary();
+        } else {
+          playBeep(180, 0.08, 'sawtooth', 0.1);
+        }
+      });
+    }
+
     dom.libraryGrid.appendChild(el);
   }
 }
 
 // ============================================================
-//  OPÇÕES
+//  OPÃ‡Ã•ES
 // ============================================================
 function onEnterOptions() {
   C8.options.selectedIndex = 0;
@@ -901,42 +1519,145 @@ function optionsNavigate(dir) {
 function optionsConfirm() {
   const opt = C8.options.items[C8.options.selectedIndex];
   switch (opt) {
-    case 'crt':       toggleCRT();       break;
-    case 'scanlines': toggleScanlines(); break;
-    case 'noise':     toggleNoise();     break;
+    case 'crt':            toggleCRT(); break;
+    case 'scanlines':      toggleScanlines(); break;
+    case 'noise':          toggleNoise(); break;
+    case 'export-profile': exportActiveProfileZip(); break;
+    case 'import-profile':
+      if (dom.profileImportFile) dom.profileImportFile.click();
+      break;
   }
 }
 
 // ============================================================
 //  GLOBAL NAVIGATION / HANDLERS
 // ============================================================
+function profileSelectNavigate(dir) {
+  const listLen = C8.profile.list.length;
+  const canCreate = listLen < PDB().C8_DB.MAX_PROFILES;
+  const len = listLen + (canCreate ? 1 : 0);
+  if (!len) return;
+  C8.profile.selectedIndex = (C8.profile.selectedIndex + dir + len) % len;
+  playNavSound();
+  syncProfileSelectSelectionUI();
+}
+
 function handleNavigate(dir) {
+  if (C8.profile.editorOpen) {
+    profileEditorNavigate(dir);
+    return;
+  }
   switch (C8.state) {
     case STATE.MENU:             menuNavigate(dir);      break;
+    case STATE.PROFILE_SELECT:   profileSelectNavigate(dir); break;
     case STATE.CARTRIDGE_SELECT: cartridgeNavigate(dir); break;
     case STATE.OPTIONS:          optionsNavigate(dir);   break;
+    case STATE.PROFILES:         profilesManagerNavigate(dir); break;
   }
 }
 
+function profilesManagerNavigate(dir) {
+  const listLen = C8.profile.list.length;
+  const canCreate = listLen < PDB().C8_DB.MAX_PROFILES;
+  const total = listLen === 0 ? 1 : listLen + (canCreate ? 2 : 1);
+  if (!total) return;
+
+  C8.profile.managerSelectionIndex = (C8.profile.managerSelectionIndex + dir + total) % total;
+  playNavSound();
+  syncProfilesManagerSelectionUI();
+}
+
 function handleConfirm() {
+  if (C8.profile.editorOpen) {
+    profileEditorConfirm();
+    return;
+  }
   switch (C8.state) {
     case STATE.MENU:             menuConfirm();      break;
+    case STATE.PROFILE_SELECT: {
+      const listLen = C8.profile.list.length;
+      const canCreate = listLen < PDB().C8_DB.MAX_PROFILES;
+      if (listLen === 0) {
+        if (dom.profileSelectCreateFirst) dom.profileSelectCreateFirst.click();
+        return;
+      }
+      if (canCreate && C8.profile.selectedIndex === listLen) {
+        if (dom.profileSelectCreate) dom.profileSelectCreate.click();
+        return;
+      }
+      const p = C8.profile.list[C8.profile.selectedIndex];
+      if (p) selectProfileFromBoot(p.id);
+      break;
+    }
     case STATE.CARTRIDGE_SELECT: cartridgeConfirm(); break;
     case STATE.OPTIONS:          optionsConfirm();   break;
+    case STATE.PROFILES: {
+      const listLen = C8.profile.list.length;
+      const canCreate = listLen < PDB().C8_DB.MAX_PROFILES;
+      const createIndex = listLen === 0 ? 0 : listLen;
+      const editIndex = listLen === 0 ? -1 : canCreate ? listLen + 1 : listLen;
+
+      if (C8.profile.managerSelectionIndex === createIndex) {
+        if (dom.profilesBtnCreate && !dom.profilesBtnCreate.disabled) {
+          dom.profilesBtnCreate.click();
+          return;
+        }
+      }
+      if (C8.profile.managerSelectionIndex === editIndex) {
+        if (dom.profilesBtnEdit) {
+          dom.profilesBtnEdit.click();
+          return;
+        }
+      }
+      if (C8.profile.managerSelectionIndex < listLen) {
+        const p = C8.profile.list[C8.profile.managerSelectionIndex];
+        if (p) switchToProfile(p.id);
+      }
+      break;
+    }
   }
 }
 
 function handleBack() {
+  if (C8.profile.editorOpen) {
+    playNavSound();
+    closeProfileEditor();
+    return;
+  }
   playNavSound();
   if (C8.state === STATE.GAME) {
     setState(STATE.CARTRIDGE_SELECT);
+  } else if (C8.state === STATE.PROFILE_SELECT) {
+    /* nÃ£o volta do boot */
   } else if (C8.state !== STATE.MENU && C8.state !== STATE.BOOT) {
     setState(STATE.MENU);
   }
 }
 
-// Keyboard Listeners
+function handleProfileEditorKey(key) {
+  if (key === 'Backspace') {
+    profileNameKey('Backspace');
+  } else if (key.length === 1) {
+    profileNameKey(key);
+  }
+}
+
+// Keyboard Listeners â€” profile editor handled above
 document.addEventListener('keydown', e => {
+  if (C8.profile.editorOpen && !isMobileInput()) {
+    if (e.key === 'Escape') {
+      closeProfileEditor();
+      return;
+    }
+    if (e.key === 'Enter') {
+      saveProfileEditor();
+      return;
+    }
+    handleProfileEditorKey(e.key);
+    if (e.key.length === 1 || e.key === 'Backspace') e.preventDefault();
+    return;
+  }
+
   if (C8.state === STATE.BOOT) {
     handleTerminalKey(e.key);
     return;
@@ -1325,10 +2046,13 @@ window.addEventListener('message', e => {
 //  INIT
 // ============================================================
 async function init() {
+  await PDB().openDB();
+  await refreshGameIdsCache();
   setupMenuInteractions();
   setupOptionsInteractions();
   setupBackButtons();
   setupMobileControls();
+  setupProfileInteractions();
   setupNoiseCanvas();
   applyCRTSettings();
   pollGamepad();
@@ -1336,3 +2060,4 @@ async function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+

@@ -45,6 +45,9 @@ public/
 # Static site / GH pages artifacts
 .github/
 
+# Ignore generated aggregate files
+**/all.txt
+
 # Ignore system-specific files
 desktop.ini
 $RECYCLE.BIN/
