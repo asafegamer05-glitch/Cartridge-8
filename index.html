@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Cartridge-8 OS v1.2</title>
+  <meta name="description" content="Cartridge-8 — Console fictício retro v1.2 com filtro de TV de tubo, estante de cartuchos 3D e aplicativos integrados.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div id="room-bg" aria-hidden="true"></div>
+
+  <div id="app">
+    <div id="tv-unit">
+
+      <!-- Bezel topo -->
+      <div id="bezel-top">
+        <span id="brand-text">CARTRIDGE<span class="brand-accent">-8</span></span>
+      </div>
+
+      <!-- Wrapper da tela -->
+      <div id="screen-wrapper">
+
+        <!-- Conteúdo da tela -->
+        <div id="screen">
+
+          <!-- ── TERMINAL / BOOT ── -->
+          <div id="view-terminal" class="view active" role="main">
+            <div id="terminal-header">
+              <span id="term-bios-label">C8-BIOS v1.2.0</span>
+              <span id="term-status">AGUARDANDO</span>
+            </div>
+            <div id="terminal-output" role="log" aria-live="polite"></div>
+            <div id="terminal-input-line">
+              <span class="prompt">&#62;</span>
+              <span id="terminal-input-text"></span>
+              <span class="cursor" id="terminal-cursor" aria-hidden="true">█</span>
+            </div>
+          </div>
+
+          <!-- ── MENU PRINCIPAL (DASHBOARD CONSOLE OS v1.2) ── -->
+          <div id="view-menu" class="view" role="navigation" aria-label="Menu principal">
+            <!-- HUD Superior de Console -->
+            <div id="menu-hud-bar">
+              <div class="hud-item"><span class="hud-led"></span> OS v1.2</div>
+              <div class="hud-item hud-center"><span class="hud-accent">CARTRIDGE-8</span> SYSTEM DASHBOARD</div>
+              <div class="hud-item">64KB RAM · VRAM OK</div>
+            </div>
+
+            <div id="menu-header">
+              <div class="menu-logo">CARTRIDGE<span class="logo-accent">-8</span></div>
+              <div class="menu-subtitle">SISTEMA OPERACIONAL v1.2</div>
+              <div class="menu-divider"></div>
+            </div>
+
+            <!-- Carrossel horizontal de abas do console -->
+            <div id="menu-carousel" role="listbox" aria-label="Opções do menu">
+              <button class="menu-nav-arrow" id="menu-nav-left" aria-label="Anterior">◀</button>
+
+              <div id="menu-cards-wrap" aria-live="polite">
+                <div class="menu-card" data-action="play" data-index="0" role="option" tabindex="0">
+                  <div class="card-icon">🎮</div>
+                  <div class="card-title">JOGAR</div>
+                  <div class="card-desc">Estante de Cartuchos 3D</div>
+                </div>
+                <div class="menu-card" data-action="apps" data-index="1" role="option" tabindex="-1">
+                  <div class="card-icon">📱</div>
+                  <div class="card-title">APLICATIVOS</div>
+                  <div class="card-desc">Sintetizador e Pixel Art</div>
+                </div>
+                <div class="menu-card" data-action="library" data-index="2" role="option" tabindex="-1">
+                  <div class="card-icon">📼</div>
+                  <div class="card-title">BIBLIOTECA</div>
+                  <div class="card-desc">Coleção de Jogos</div>
+                </div>
+                <div class="menu-card" data-action="controller" data-index="3" role="option" tabindex="-1">
+                  <div class="card-icon">🕹️</div>
+                  <div class="card-title">CONTROLE</div>
+                  <div class="card-desc">Testar Gamepad</div>
+                </div>
+                <div class="menu-card" data-action="options" data-index="4" role="option" tabindex="-1">
+                  <div class="card-icon">⚙️</div>
+                  <div class="card-title">OPÇÕES</div>
+                  <div class="card-desc">Vídeo e Filtro CRT</div>
+                </div>
+                <div class="menu-card" data-action="about" data-index="5" role="option" tabindex="-1">
+                  <div class="card-icon">ℹ️</div>
+                  <div class="card-title">SOBRE</div>
+                  <div class="card-desc">Especificações v1.2</div>
+                </div>
+              </div>
+
+              <button class="menu-nav-arrow" id="menu-nav-right" aria-label="Próximo">▶</button>
+            </div>
+
+            <!-- Indicadores de posição -->
+            <div id="menu-dots" aria-hidden="true">
+              <div class="menu-dot" data-index="0"></div>
+              <div class="menu-dot" data-index="1"></div>
+              <div class="menu-dot" data-index="2"></div>
+              <div class="menu-dot" data-index="3"></div>
+              <div class="menu-dot" data-index="4"></div>
+              <div class="menu-dot" data-index="5"></div>
+            </div>
+
+            <div id="menu-footer">
+              <span>◀ ▶ NAVEGAR</span>
+              <span class="foot-sep">·</span>
+              <span>ENTER / A SELECIONAR</span>
+              <span class="foot-sep">·</span>
+              <span>F6 CRT</span>
+            </div>
+          </div>
+
+          <!-- ── CARTRIDGE SELECT (ESTANTE 3D DE CARTUCHOS) ── -->
+          <div id="view-cartridge" class="view" role="main">
+            <div class="view-header">
+              <button class="back-btn" id="back-from-cartridge">◀ ESC</button>
+              <h1 class="view-title">ESTANTE DE CARTUCHOS 3D</h1>
+              <span class="cart-count-badge" id="cart-count">4 CARTUCHOS</span>
+            </div>
+
+            <div id="cartridge-stage">
+              <!-- Estante com rotação e projeção 3D dos cartuchos -->
+              <div id="cartridge-rack-container">
+                <button class="rack-nav-btn" id="rack-prev" aria-label="Cartucho anterior">◀</button>
+                <div id="cartridge-rack" role="list"></div>
+                <button class="rack-nav-btn" id="rack-next" aria-label="Próximo cartucho">▶</button>
+              </div>
+
+              <!-- Painel de especificações e detalhes do cartucho selecionado -->
+              <div id="cartridge-details-panel">
+                <div class="cart-details-header">
+                  <div id="cart-details-title">STAR BLASTER</div>
+                  <div id="cart-details-badge">C8-SEAL OF QUALITY</div>
+                </div>
+                <div class="cart-details-body">
+                  <p id="cart-details-desc">Carregando informações do cartucho...</p>
+                  <div class="cart-specs-grid">
+                    <div class="spec-tag">DEV: <span id="cart-spec-dev">-</span></div>
+                    <div class="spec-tag">GÊNERO: <span id="cart-spec-genre">-</span></div>
+                    <div class="spec-tag">ANO: <span id="cart-spec-year">-</span></div>
+                    <div class="spec-tag">VERSÃO: <span id="cart-spec-ver">-</span></div>
+                  </div>
+                </div>
+                <button id="btn-insert-play" class="c8-retro-btn">
+                  <span class="btn-icon">📼</span> INSERIR CARTUCHO E JOGAR
+                </button>
+              </div>
+            </div>
+
+            <div id="no-cartridges-msg" style="display:none">
+              <p>Nenhum cartucho encontrado na estante.</p>
+              <p class="dim">Adicione jogos na pasta <code>/games/</code></p>
+            </div>
+          </div>
+
+          <!-- ── APLICATIVOS DO CONSOLE v1.2 ── -->
+          <div id="view-apps" class="view" role="main">
+            <div class="view-header">
+              <button class="back-btn" id="back-from-apps">◀ ESC</button>
+              <h1 class="view-title">APLICATIVOS DO CONSOLE v1.2</h1>
+              <div class="apps-tabs">
+                <button class="app-tab-btn active" id="tab-synth" data-app="synth">🎵 C8-SOUNDWAVE</button>
+                <button class="app-tab-btn" id="tab-pixel" data-app="pixel">🎨 PIXEL STUDIO 8</button>
+              </div>
+            </div>
+
+            <div id="apps-container">
+              <!-- APP 1: C8-SOUNDWAVE SINTETIZADOR CHIPTUNE -->
+              <div id="app-synth" class="app-subview active">
+                <div class="synth-panel">
+                  <div class="synth-top-row">
+                    <div class="synth-title-area">
+                      <span class="synth-main-title">C8-SOUNDWAVE</span>
+                      <span class="synth-subtitle">Sintetizador Chiptune 8-Bit</span>
+                    </div>
+                    <div class="wave-selector">
+                      <span class="wave-label">ONDA:</span>
+                      <button class="wave-btn active" data-wave="square">SQUARE</button>
+                      <button class="wave-btn" data-wave="sawtooth">SAW</button>
+                      <button class="wave-btn" data-wave="triangle">TRI</button>
+                      <button class="wave-btn" data-wave="sine">SINE</button>
+                    </div>
+                  </div>
+
+                  <!-- Gerador de Efeitos Arcade -->
+                  <div class="synth-sfx-grid">
+                    <span class="sfx-header-label">PRESETS SFX ARCADE:</span>
+                    <div class="sfx-buttons">
+                      <button class="sfx-btn" data-sfx="jump">🏃 PULO</button>
+                      <button class="sfx-btn" data-sfx="laser">🔫 LASER</button>
+                      <button class="sfx-btn" data-sfx="coin">🪙 MOEDA</button>
+                      <button class="sfx-btn" data-sfx="explosion">💥 EXPLOSÃO</button>
+                      <button class="sfx-btn" data-sfx="powerup">⭐ POWERUP</button>
+                    </div>
+                  </div>
+
+                  <!-- Teclado Piano Sintetizador (Teclas virtuais e atalhos de teclado) -->
+                  <div class="synth-keyboard">
+                    <button class="synth-key" data-note="261.63">C4<span class="key-hint">Z</span></button>
+                    <button class="synth-key key-black" data-note="277.18">C#<span class="key-hint">S</span></button>
+                    <button class="synth-key" data-note="293.66">D4<span class="key-hint">X</span></button>
+                    <button class="synth-key key-black" data-note="311.13">D#<span class="key-hint">D</span></button>
+                    <button class="synth-key" data-note="329.63">E4<span class="key-hint">C</span></button>
+                    <button class="synth-key" data-note="349.23">F4<span class="key-hint">V</span></button>
+                    <button class="synth-key key-black" data-note="369.99">F#<span class="key-hint">G</span></button>
+                    <button class="synth-key" data-note="392.00">G4<span class="key-hint">B</span></button>
+                    <button class="synth-key key-black" data-note="415.30">G#<span class="key-hint">H</span></button>
+                    <button class="synth-key" data-note="440.00">A4<span class="key-hint">N</span></button>
+                    <button class="synth-key key-black" data-note="466.16">A#<span class="key-hint">J</span></button>
+                    <button class="synth-key" data-note="493.88">B4<span class="key-hint">M</span></button>
+                    <button class="synth-key" data-note="523.25">C5<span class="key-hint">,</span></button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- APP 2: PIXEL STUDIO 8 -->
+              <div id="app-pixel" class="app-subview">
+                <div class="pixel-studio-panel">
+                  <div class="pixel-sidebar">
+                    <div class="pixel-section-title">FERRAMENTAS</div>
+                    <div class="pixel-tools">
+                      <button class="tool-btn active" id="tool-pencil">✏️ PINCEL</button>
+                      <button class="tool-btn" id="tool-eraser">🧹 BORRACHA</button>
+                      <button class="tool-btn danger" id="tool-clear">🗑️ LIMPAR</button>
+                    </div>
+
+                    <div class="pixel-section-title">PALETA RETRO</div>
+                    <div class="pixel-palette">
+                      <div class="color-swatch active" style="background:#5de4ff" data-color="#5de4ff"></div>
+                      <div class="color-swatch" style="background:#ff6090" data-color="#ff6090"></div>
+                      <div class="color-swatch" style="background:#ffd166" data-color="#ffd166"></div>
+                      <div class="color-swatch" style="background:#4dff8a" data-color="#4dff8a"></div>
+                      <div class="color-swatch" style="background:#ffffff" data-color="#ffffff"></div>
+                      <div class="color-swatch" style="background:#9b51e0" data-color="#9b51e0"></div>
+                      <div class="color-swatch" style="background:#ff9f43" data-color="#ff9f43"></div>
+                      <div class="color-swatch" style="background:#141426" data-color="#141426"></div>
+                    </div>
+                  </div>
+
+                  <div class="pixel-canvas-area">
+                    <canvas id="pixel-canvas" width="16" height="16"></canvas>
+                    <span class="canvas-hint">Clique e arraste para desenhar sprites 16x16</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── BIBLIOTECA ── -->
+          <div id="view-library" class="view" role="main">
+            <div class="view-header">
+              <button class="back-btn" id="back-from-library">◀ ESC</button>
+              <h1 class="view-title">BIBLIOTECA DE CARTUCHOS</h1>
+            </div>
+            <div id="library-grid"></div>
+          </div>
+
+          <!-- ── CONTROLE ── -->
+          <div id="view-controller" class="view" role="main">
+            <div class="view-header">
+              <button class="back-btn" id="back-from-controller">◀ ESC</button>
+              <h1 class="view-title">TESTE DE CONTROLE</h1>
+            </div>
+            <div id="controller-display">
+              <div id="no-gamepad-msg">
+                <div class="no-gp-icon">🎮</div>
+                <p>Conecte um gamepad e pressione qualquer botão</p>
+                <p class="dim">ou use o teclado para navegar</p>
+              </div>
+              <div id="gamepad-visual">
+                <div class="gp-layout">
+                  <div class="gp-section">
+                    <div class="gp-dpad">
+                      <div class="dpad-btn" id="gp-up">↑</div>
+                      <div class="dpad-row">
+                        <div class="dpad-btn" id="gp-left">←</div>
+                        <div class="dpad-center"></div>
+                        <div class="dpad-btn" id="gp-right">→</div>
+                      </div>
+                      <div class="dpad-btn" id="gp-down">↓</div>
+                    </div>
+                    <div class="gp-label">D-PAD</div>
+                  </div>
+                  <div class="gp-center-area">
+                    <div id="gp-select" class="gp-btn-center">SEL</div>
+                    <div id="gp-start"  class="gp-btn-center">STA</div>
+                    <div id="gamepad-name" class="gp-name"></div>
+                    <div id="axes-display"  class="gp-axes"></div>
+                  </div>
+                  <div class="gp-section">
+                    <div class="gp-face">
+                      <div class="gp-btn btn-y" id="gp-y">Y</div>
+                      <div class="gp-face-row">
+                        <div class="gp-btn btn-x" id="gp-x">X</div>
+                        <div class="gp-btn btn-b" id="gp-b">B</div>
+                      </div>
+                      <div class="gp-btn btn-a" id="gp-a">A</div>
+                    </div>
+                    <div class="gp-label">BOTÕES</div>
+                  </div>
+                </div>
+                <div class="gp-shoulders">
+                  <div class="gp-shoulder" id="gp-l1">L1</div>
+                  <div class="gp-shoulder" id="gp-l2">L2</div>
+                  <div class="gp-shoulder" id="gp-r1">R1</div>
+                  <div class="gp-shoulder" id="gp-r2">R2</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── OPÇÕES ── -->
+          <div id="view-options" class="view" role="main">
+            <div class="view-header">
+              <button class="back-btn" id="back-from-options">◀ ESC</button>
+              <h1 class="view-title">OPÇÕES DE VÍDEO & SISTEMA</h1>
+            </div>
+            <div id="options-list">
+              <div class="option-item" data-option="crt" id="opt-crt">
+                <div class="option-left">
+                  <span class="option-label">FILTRO CRT</span>
+                  <span class="option-hint-text">Aperture grille + tubo convexo + glow</span>
+                </div>
+                <div class="option-right">
+                  <div class="toggle-switch active" id="toggle-crt" role="switch" aria-checked="true">
+                    <div class="toggle-knob"></div>
+                  </div>
+                  <span class="option-value" id="crt-value">ON</span>
+                </div>
+              </div>
+              <div class="option-item" data-option="scanlines" id="opt-scanlines">
+                <div class="option-left">
+                  <span class="option-label">SCANLINES</span>
+                  <span class="option-hint-text">Linhas de varredura CRT</span>
+                </div>
+                <div class="option-right">
+                  <div class="toggle-switch active" id="toggle-scanlines" role="switch" aria-checked="true">
+                    <div class="toggle-knob"></div>
+                  </div>
+                  <span class="option-value" id="scanlines-value">ON</span>
+                </div>
+              </div>
+              <div class="option-item" data-option="noise" id="opt-noise">
+                <div class="option-left">
+                  <span class="option-label">RUÍDO DE TELA</span>
+                  <span class="option-hint-text">Granulado analógico</span>
+                </div>
+                <div class="option-right">
+                  <div class="toggle-switch active" id="toggle-noise" role="switch" aria-checked="true">
+                    <div class="toggle-knob"></div>
+                  </div>
+                  <span class="option-value" id="noise-value">ON</span>
+                </div>
+              </div>
+              <div class="option-item" data-option="brightness" id="opt-brightness">
+                <div class="option-left">
+                  <span class="option-label">BRILHO</span>
+                  <span class="option-hint-text">Intensidade da tela</span>
+                </div>
+                <div class="option-right">
+                  <input type="range" id="brightness-slider" min="50" max="150" value="100">
+                  <span class="option-value" id="brightness-value">100%</span>
+                </div>
+              </div>
+              <div class="option-shortcut">
+                <span class="key-badge">F6</span> Toggle rápido do filtro CRT
+              </div>
+            </div>
+          </div>
+
+          <!-- ── SOBRE ── -->
+          <div id="view-about" class="view" role="main">
+            <div class="view-header">
+              <button class="back-btn" id="back-from-about">◀ ESC</button>
+              <h1 class="view-title">SOBRE O CONSOLE</h1>
+            </div>
+            <div id="about-content">
+              <div class="about-logo">CARTRIDGE<span>-8</span></div>
+              <div class="about-version">Sistema Operacional v1.2 · 2026</div>
+              <p class="about-tagline">Um console fictício retro com estante de cartuchos 3D e aplicativos integrados.<br>Desenvolvido com HTML, CSS e JS puro.</p>
+              <div class="about-specs">
+                <div class="spec-row"><span>SISTEMA</span><span>Cartridge-8 OS v1.2</span></div>
+                <div class="spec-row"><span>CPU</span><span>C8-6502 @ 1.7 MHz</span></div>
+                <div class="spec-row"><span>RAM / VRAM</span><span>64 KB RAM · 8 KB VRAM</span></div>
+                <div class="spec-row"><span>MÍDIA</span><span>Cartuchos 3D Magnéticos</span></div>
+                <div class="spec-row"><span>CORES</span><span>32 simultâneas com CRT</span></div>
+                <div class="spec-row"><span>ÁUDIO</span><span>Sintetizador Chiptune (Web Audio)</span></div>
+                <div class="spec-row"><span>ENTRADA</span><span>Teclado · Gamepad · Touch</span></div>
+              </div>
+              <div class="about-credits">
+                <p>© 2026 asafgameryDEV</p>
+                <p class="dim">Feito com ❤ e muita nostalgia retro</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── GAME IFRAME ── -->
+          <iframe id="game-frame" class="view" src="about:blank"
+                  sandbox="allow-scripts allow-same-origin"
+                  title="Jogo ativo"></iframe>
+
+          <!-- ── EFEITOS CRT (Ficam DENTRO do #screen por cima de tudo) ── -->
+          <canvas id="crt-noise" aria-hidden="true"></canvas>
+          <div id="crt-scanlines" aria-hidden="true"></div>
+          <div id="crt-vignette" aria-hidden="true"></div>
+          <div id="crt-glare" aria-hidden="true"></div>
+
+          <!-- ── MOUSE VIRTUAL PARA GAMEPAD ── -->
+          <div id="virtual-cursor" aria-hidden="true">🖯</div>
+
+        </div><!-- #screen -->
+      </div><!-- #screen-wrapper -->
+
+      <!-- Bezel inferior -->
+      <div id="bezel-bottom">
+        <div id="power-area">
+          <div id="power-led"></div>
+          <span class="bezel-label">POWER</span>
+        </div>
+        <div id="cartridge-slot-area">
+          <div id="cartridge-slot">
+            <div id="slot-inner">
+              <span id="slot-label">CARTRIDGE SLOT</span>
+            </div>
+          </div>
+        </div>
+        <div id="extra-controls">
+          <div class="knob-group">
+            <div class="bezel-knob"></div>
+            <span class="bezel-label">VOL</span>
+          </div>
+          <div class="knob-group">
+            <div class="bezel-knob"></div>
+            <span class="bezel-label">BRT</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- #tv-unit -->
+
+    <!-- Controles virtuais mobile -->
+    <div id="mobile-controls" aria-label="Controles virtuais">
+      <div id="mobile-dpad">
+        <button class="dpad-virtual" id="m-up" aria-label="Cima">▲</button>
+        <div class="dpad-middle">
+          <button class="dpad-virtual" id="m-left" aria-label="Esquerda">◀</button>
+          <div class="dpad-center-piece"></div>
+          <button class="dpad-virtual" id="m-right" aria-label="Direita">▶</button>
+        </div>
+        <button class="dpad-virtual" id="m-down" aria-label="Baixo">▼</button>
+      </div>
+      <div id="mobile-center">
+        <button class="mobile-btn-sm" id="m-select">SEL</button>
+        <button class="mobile-btn-sm" id="m-start">STA</button>
+      </div>
+      <div id="mobile-face">
+        <button class="mobile-face-btn btn-y" id="m-y">Y</button>
+        <div class="face-mid-row">
+          <button class="mobile-face-btn btn-x" id="m-x">X</button>
+          <button class="mobile-face-btn btn-b" id="m-b">B</button>
+        </div>
+        <button class="mobile-face-btn btn-a" id="m-a">A</button>
+      </div>
+    </div>
+
+  </div><!-- #app -->
+
+  <script src="main.js"></script>
+</body>
+</html>

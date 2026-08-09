@@ -1,0 +1,7 @@
+name=airsoft simulator
+dev=asafgamery
+version=1.0
+desc=Fps top-down
+color=#FFFFFF
+genre=FPS
+year=2026

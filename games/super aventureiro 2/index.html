@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Aventureiro 2 - Edição Completa</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        canvas {
+            border: 2px solid #333;
+            image-rendering: pixelated;
+        }
+        #info {
+            color: white;
+            margin-top: 10px;
+            text-align: center;
+        }
+        .controls {
+            color: #aaa;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .hud {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+        .godmode-indicator {
+            color: #f1c40f;
+            font-weight: bold;
+            animation: pulse 0.5s infinite alternate;
+        }
+        @keyframes pulse {
+            from { opacity: 0.5; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="info">
+        <div id="levelDisplay">MENU</div>
+        <div class="hud">
+            <div id="scoreDisplay">⭐ Moedas: 0 / 8</div>
+            <div id="livesDisplay">❤️ Vidas: 3</div>
+        </div>
+        <div id="godmodeDisplay" style="display:none;" class="godmode-indicator">👑 MODO INVENCÍVEL ATIVADO</div>
+        <div class="controls">🎮 Gamepad: D-Pad/analógico mover | A=pular | X=dash | R+L=Modo Invencível | ⌨️ Teclado: Setas + Espaço + Shift</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = 800;
+        canvas.height = 400;
+        
+        let gameState = 'menu';
+        let currentLevel = 1;
+        let totalCoins = 0;
+        const coinsPerLevel = 8;
+        let lives = 3;
+        let cameraX = 0;
+        const levelWidth = 2400;
+        let godMode = false; // Modo invencível
+        
+        const player = {
+            x: 50,
+            y: 300,
+            width: 30,
+            height: 40,
+            vx: 0,
+            vy: 0,
+            speed: 5,
+            jumpForce: -11,
+            gravity: 0.6,
+            grounded: false,
+            color: '#e74c3c',
+            facing: 1,
+            invincible: 0,
+            dashing: false,
+            dashCooldown: 0,
+            dashSpeed: 12,
+            dashDuration: 0
+        };
+        
+        let platforms = [];
+        let enemies = [];
+        let coins = [];
+        let boss = null;
+        let flag = { x: 0, y: 0, width: 20, height: 60 };
+        
+        const keys = {};
+        let gamepadConnected = false;
+        let rlPressed = false; // Para evitar ativar/desativar god mode várias vezes
+        
+        function getEnemyColors(level) {
+            switch(level) {
+                case 1: return { walker: '#27ae60', flyer: '#e67e22' };
+                case 2: return { walker: '#2980b9', flyer: '#f39c12' };
+                case 3: return { walker: '#8e44ad', flyer: '#e74c3c' };
+                case 4: return { walker: '#c0392b', flyer: '#e74c3c' };
+                case 5: return { walker: '#2c3e50', flyer: '#c0392b' };
+                default: return { walker: '#27ae60', flyer: '#e67e22' };
+            }
+        }
+        
+        function loadLevel(level) {
+            platforms = [];
+            enemies = [];
+            coins = [];
+            boss = null;
+            
+            platforms.push({ x: 0, y: 370, width: levelWidth, height: 30, color: '#8B4513' });
+            
+            const colors = getEnemyColors(level);
+            
+            switch(level) {
+                case 1:
+                    platforms.push({ x: 300, y: 310, width: 120, height: 15, color: '#654321' });
+                    platforms.push({ x: 500, y: 260, width: 100, height: 15, color: '#654321' });
+                    platforms.push({ x: 700, y: 300, width: 130, height: 15, color: '#654321' });
+                    platforms.push({ x: 950, y: 240, width: 100, height: 15, color: '#654321' });
+                    platforms.push({ x: 1150, y: 290, width: 120, height: 15, color: '#654321' });
+                    platforms.push({ x: 1400, y: 330, width: 100, height: 15, color: '#654321' });
+                    platforms.push({ x: 1650, y: 270, width: 120, height: 15, color: '#654321' });
+                    platforms.push({ x: 1900, y: 310, width: 100, height: 15, color: '#654321' });
+                    platforms.push({ x: 2100, y: 250, width: 130, height: 15, color: '#654321' });
+                    
+                    enemies.push({ x: 350, y: 340, width: 30, height: 30, vx: 1.5, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 600, y: 340, width: 30, height: 30, vx: -1.5, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 450, y: 200, width: 30, height: 30, vx: 1, vy: 0, amplitude: 50, baseY: 200, color: colors.flyer, type: 'flyer' });
+                    
+                    coins.push({ x: 330, y: 280 }, { x: 530, y: 230 }, { x: 730, y: 270 }, { x: 980, y: 210 });
+                    coins.push({ x: 1180, y: 260 }, { x: 1430, y: 300 }, { x: 1930, y: 280 }, { x: 2130, y: 220 });
+                    
+                    flag = { x: 2300, y: 310, width: 20, height: 60 };
+                    break;
+                    
+                case 2:
+                    platforms.push({ x: 200, y: 330, width: 100, height: 15, color: '#654321' });
+                    platforms.push({ x: 400, y: 280, width: 100, height: 15, color: '#654321' });
+                    platforms.push({ x: 600, y: 230, width: 100, height: 15, color: '#654321' });
+                    platforms.push({ x: 850, y: 300, width: 100, height: 15, color: '#654321' });
+                    platforms.push({ x: 1050, y: 250, width: 100, height: 15, color: '#654321' });
+                    platforms.push({ x: 1300, y: 320, width: 100, height: 15, color: '#654321' });
+                    platforms.push({ x: 1550, y: 270, width: 100, height: 15, color: '#654321' });
+                    platforms.push({ x: 1800, y: 220, width: 100, height: 15, color: '#654321' });
+                    platforms.push({ x: 2050, y: 290, width: 100, height: 15, color: '#654321' });
+                    
+                    enemies.push({ x: 300, y: 340, width: 30, height: 30, vx: 2, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 700, y: 340, width: 30, height: 30, vx: -2.2, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 500, y: 180, width: 30, height: 30, vx: 1.5, vy: 0, amplitude: 70, baseY: 180, color: colors.flyer, type: 'flyer' });
+                    enemies.push({ x: 1400, y: 190, width: 30, height: 30, vx: -1.8, vy: 0, amplitude: 65, baseY: 190, color: colors.flyer, type: 'flyer' });
+                    
+                    coins.push({ x: 230, y: 300 }, { x: 430, y: 250 }, { x: 630, y: 200 }, { x: 880, y: 270 });
+                    coins.push({ x: 1080, y: 220 }, { x: 1580, y: 240 }, { x: 1830, y: 190 }, { x: 2080, y: 260 });
+                    
+                    flag = { x: 2300, y: 310, width: 20, height: 60 };
+                    break;
+                    
+                case 3:
+                    platforms.push({ x: 250, y: 320, width: 80, height: 15, color: '#654321' });
+                    platforms.push({ x: 450, y: 270, width: 80, height: 15, color: '#654321' });
+                    platforms.push({ x: 650, y: 310, width: 80, height: 15, color: '#654321' });
+                    platforms.push({ x: 850, y: 240, width: 80, height: 15, color: '#654321' });
+                    platforms.push({ x: 1050, y: 290, width: 80, height: 15, color: '#654321' });
+                    platforms.push({ x: 1250, y: 330, width: 80, height: 15, color: '#654321' });
+                    platforms.push({ x: 1450, y: 260, width: 80, height: 15, color: '#654321' });
+                    platforms.push({ x: 1650, y: 300, width: 80, height: 15, color: '#654321' });
+                    platforms.push({ x: 1850, y: 230, width: 80, height: 15, color: '#654321' });
+                    platforms.push({ x: 2050, y: 280, width: 80, height: 15, color: '#654321' });
+                    
+                    enemies.push({ x: 350, y: 340, width: 30, height: 30, vx: 2.2, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 750, y: 340, width: 30, height: 30, vx: -2.5, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 1150, y: 340, width: 30, height: 30, vx: 2.3, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 350, y: 200, width: 30, height: 30, vx: 1.7, vy: 0, amplitude: 60, baseY: 200, color: colors.flyer, type: 'flyer' });
+                    enemies.push({ x: 1350, y: 190, width: 30, height: 30, vx: -1.9, vy: 0, amplitude: 65, baseY: 190, color: colors.flyer, type: 'flyer' });
+                    
+                    coins.push({ x: 280, y: 290 }, { x: 480, y: 240 }, { x: 680, y: 280 }, { x: 880, y: 210 });
+                    coins.push({ x: 1080, y: 260 }, { x: 1480, y: 230 }, { x: 1880, y: 200 }, { x: 2080, y: 250 });
+                    
+                    flag = { x: 2300, y: 310, width: 20, height: 60 };
+                    break;
+                    
+                case 4:
+                    platforms.push({ x: 150, y: 340, width: 90, height: 15, color: '#654321' });
+                    platforms.push({ x: 350, y: 290, width: 90, height: 15, color: '#654321' });
+                    platforms.push({ x: 550, y: 240, width: 90, height: 15, color: '#654321' });
+                    platforms.push({ x: 750, y: 300, width: 90, height: 15, color: '#654321' });
+                    platforms.push({ x: 950, y: 250, width: 90, height: 15, color: '#654321' });
+                    platforms.push({ x: 1150, y: 200, width: 90, height: 15, color: '#654321' });
+                    platforms.push({ x: 1350, y: 270, width: 90, height: 15, color: '#654321' });
+                    platforms.push({ x: 1550, y: 320, width: 90, height: 15, color: '#654321' });
+                    platforms.push({ x: 1750, y: 260, width: 90, height: 15, color: '#654321' });
+                    platforms.push({ x: 1950, y: 210, width: 90, height: 15, color: '#654321' });
+                    platforms.push({ x: 2150, y: 280, width: 90, height: 15, color: '#654321' });
+                    
+                    enemies.push({ x: 250, y: 340, width: 30, height: 30, vx: 2.5, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 800, y: 340, width: 30, height: 30, vx: -2.8, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 1400, y: 340, width: 30, height: 30, vx: 3, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 400, y: 190, width: 30, height: 30, vx: 2, vy: 0, amplitude: 80, baseY: 190, color: colors.flyer, type: 'flyer' });
+                    enemies.push({ x: 1300, y: 180, width: 30, height: 30, vx: -2.2, vy: 0, amplitude: 75, baseY: 180, color: colors.flyer, type: 'flyer' });
+                    enemies.push({ x: 2100, y: 190, width: 30, height: 30, vx: 2.1, vy: 0, amplitude: 85, baseY: 190, color: colors.flyer, type: 'flyer' });
+                    
+                    coins.push({ x: 180, y: 310 }, { x: 380, y: 260 }, { x: 580, y: 210 }, { x: 780, y: 270 });
+                    coins.push({ x: 980, y: 220 }, { x: 1380, y: 240 }, { x: 1780, y: 230 }, { x: 2180, y: 250 });
+                    
+                    flag = { x: 2300, y: 310, width: 20, height: 60 };
+                    break;
+                    
+                case 5:
+                    platforms.push({ x: 100, y: 350, width: 70, height: 15, color: '#654321' });
+                    platforms.push({ x: 300, y: 300, width: 70, height: 15, color: '#654321' });
+                    platforms.push({ x: 500, y: 250, width: 70, height: 15, color: '#654321' });
+                    platforms.push({ x: 700, y: 200, width: 70, height: 15, color: '#654321' });
+                    platforms.push({ x: 900, y: 260, width: 70, height: 15, color: '#654321' });
+                    platforms.push({ x: 1100, y: 310, width: 70, height: 15, color: '#654321' });
+                    platforms.push({ x: 1300, y: 240, width: 70, height: 15, color: '#654321' });
+                    platforms.push({ x: 1500, y: 190, width: 70, height: 15, color: '#654321' });
+                    platforms.push({ x: 1700, y: 270, width: 70, height: 15, color: '#654321' });
+                    platforms.push({ x: 1900, y: 220, width: 70, height: 15, color: '#654321' });
+                    platforms.push({ x: 2100, y: 290, width: 70, height: 15, color: '#654321' });
+                    
+                    enemies.push({ x: 200, y: 340, width: 30, height: 30, vx: 3, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 650, y: 340, width: 30, height: 30, vx: -3.2, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 1350, y: 340, width: 30, height: 30, vx: 3, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 1850, y: 340, width: 30, height: 30, vx: -3.1, color: colors.walker, type: 'walker' });
+                    enemies.push({ x: 750, y: 150, width: 30, height: 30, vx: -2.5, vy: 0, amplitude: 80, baseY: 150, color: colors.flyer, type: 'flyer' });
+                    enemies.push({ x: 1200, y: 160, width: 30, height: 30, vx: 2.6, vy: 0, amplitude: 75, baseY: 160, color: colors.flyer, type: 'flyer' });
+                    enemies.push({ x: 1750, y: 180, width: 30, height: 30, vx: -2.8, vy: 0, amplitude: 70, baseY: 180, color: colors.flyer, type: 'flyer' });
+                    
+                    // BOSS FINAL
+                    boss = {
+                        x: 2000,
+                        y: 280,
+                        width: 60,
+                        height: 90,
+                        vx: 2,
+                        vy: 0,
+                        hp: 3,
+                        maxHp: 3,
+                        color: '#8e44ad',
+                        invincible: 0,
+                        type: 'boss',
+                        attackCooldown: 0
+                    };
+                    
+                    coins.push({ x: 130, y: 320 }, { x: 330, y: 270 }, { x: 530, y: 220 }, { x: 730, y: 170 });
+                    coins.push({ x: 930, y: 230 }, { x: 1330, y: 210 }, { x: 1730, y: 240 }, { x: 2130, y: 260 });
+                    
+                    flag = { x: 2300, y: 310, width: 20, height: 60 };
+                    break;
+            }
+            
+            coins.forEach(c => c.collected = false);
+            
+            player.x = 50;
+            player.y = 300;
+            player.vx = 0;
+            player.vy = 0;
+            player.dashing = false;
+            player.dashCooldown = 0;
+            player.dashDuration = 0;
+            player.invincible = 0;
+            totalCoins = 0;
+            cameraX = 0;
+            updateDisplay();
+        }
+        
+        function updateDisplay() {
+            if (gameState === 'menu') {
+                document.getElementById('levelDisplay').textContent = '🎮 SUPER AVENTUREIRO 2';
+            } else {
+                document.getElementById('levelDisplay').textContent = `FASE ${currentLevel} / 5`;
+            }
+            document.getElementById('scoreDisplay').textContent = `⭐ Moedas: ${totalCoins} / ${coinsPerLevel}`;
+            document.getElementById('livesDisplay').textContent = godMode ? '👑 ∞ Vidas' : `❤️ Vidas: ${lives}`;
+            
+            const godmodeDisplay = document.getElementById('godmodeDisplay');
+            if (godMode) {
+                godmodeDisplay.style.display = 'block';
+            } else {
+                godmodeDisplay.style.display = 'none';
+            }
+        }
+        
+        window.addEventListener("gamepadconnected", (e) => {
+            console.log("Gamepad conectado:", e.gamepad.id);
+            gamepadConnected = true;
+        });
+        
+        window.addEventListener("gamepaddisconnected", (e) => {
+            console.log("Gamepad desconectado:", e.gamepad.id);
+            gamepadConnected = false;
+        });
+        
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+                e.preventDefault();
+            }
+            
+            // God mode com teclado: pressionar R + L
+            if (keys['KeyR'] && keys['KeyL']) {
+                if (!rlPressed) {
+                    godMode = !godMode;
+                    rlPressed = true;
+                    updateDisplay();
+                    console.log('Modo invencível:', godMode ? 'ATIVADO' : 'DESATIVADO');
+                }
+            } else {
+                rlPressed = false;
+            }
+        });
+        
+        window.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+        
+        function getGamepadInput() {
+            if (!gamepadConnected) return null;
+            const gamepads = navigator.getGamepads();
+            if (!gamepads) return null;
+            for (let gamepad of gamepads) {
+                if (gamepad && gamepad.connected) return gamepad;
+            }
+            return null;
+        }
+        
+        function update() {
+            // MENU
+            if (gameState === 'menu') {
+                const gamepad = getGamepadInput();
+                
+                // God mode no menu também
+                if (gamepad && gamepad.buttons[4]?.pressed && gamepad.buttons[6]?.pressed) {
+                    if (!rlPressed) {
+                        godMode = !godMode;
+                        rlPressed = true;
+                        updateDisplay();
+                    }
+                } else {
+                    rlPressed = false;
+                }
+                
+                if (keys['Enter'] || keys['Space'] || (gamepad && gamepad.buttons[0]?.pressed)) {
+                    gameState = 'playing';
+                    currentLevel = 1;
+                    lives = 3;
+                    loadLevel(1);
+                    updateDisplay();
+                }
+                return;
+            }
+            
+            // GAMEOVER / WIN / BOSS DEFEATED
+            if (gameState === 'gameover' || gameState === 'win' || gameState === 'bossDefeated') {
+                const gamepad = getGamepadInput();
+                
+                // God mode
+                if (gamepad && gamepad.buttons[4]?.pressed && gamepad.buttons[6]?.pressed) {
+                    if (!rlPressed) {
+                        godMode = !godMode;
+                        rlPressed = true;
+                        updateDisplay();
+                    }
+                } else {
+                    rlPressed = false;
+                }
+                
+                if (keys['Enter'] || (gamepad && gamepad.buttons[0]?.pressed)) {
+                    if (gameState === 'gameover') {
+                        if (godMode) {
+                            // No god mode, só continua
+                            loadLevel(currentLevel);
+                            gameState = 'playing';
+                        } else {
+                            lives--;
+                            if (lives <= 0) {
+                                lives = 3;
+                                currentLevel = 1;
+                                loadLevel(1);
+                            } else {
+                                loadLevel(currentLevel);
+                            }
+                            gameState = 'playing';
+                        }
+                    } else if (gameState === 'win' || gameState === 'bossDefeated') {
+                        if (currentLevel < 5) {
+                            currentLevel++;
+                            loadLevel(currentLevel);
+                            gameState = 'playing';
+                        } else {
+                            currentLevel = 1;
+                            lives = 3;
+                            loadLevel(1);
+                            gameState = 'playing';
+                            alert('🎉 PARABÉNS! Você completou todas as 5 fases e derrotou o Boss Final! 🎉\nVocê é o Super Aventureiro Supremo!');
+                        }
+                    }
+                }
+                return;
+            }
+            
+            // Verificar god mode com R+L (teclado já foi verificado no keydown)
+            const gamepad = getGamepadInput();
+            if (gamepad && gamepad.buttons[4]?.pressed && gamepad.buttons[6]?.pressed) {
+                if (!rlPressed) {
+                    godMode = !godMode;
+                    rlPressed = true;
+                    updateDisplay();
+                }
+            } else if (!keys['KeyR'] || !keys['KeyL']) {
+                rlPressed = false;
+            }
+            
+            if (player.invincible > 0) player.invincible--;
+            if (player.dashCooldown > 0) player.dashCooldown--;
+            
+            let moveLeft = keys['ArrowLeft'] || keys['KeyA'];
+            let moveRight = keys['ArrowRight'] || keys['KeyD'];
+            let jump = keys['Space'] || keys['ArrowUp'] || keys['KeyW'];
+            let dash = keys['ShiftLeft'] || keys['ShiftRight'] || keys['KeyX'];
+            
+            if (gamepad) {
+                if (gamepad.axes[0] < -0.5) moveLeft = true;
+                if (gamepad.axes[0] > 0.5) moveRight = true;
+                if (gamepad.buttons[14]?.pressed) moveLeft = true;
+                if (gamepad.buttons[15]?.pressed) moveRight = true;
+                if (gamepad.buttons[0]?.pressed) jump = true;
+                if (gamepad.buttons[2]?.pressed) dash = true;
+            }
+            
+            // DASH
+            if (dash && !player.dashing && player.dashCooldown <= 0) {
+                player.dashing = true;
+                player.dashDuration = 10;
+                player.dashCooldown = 30;
+                player.vy = 0;
+            }
+            
+            if (player.dashing) {
+                player.vx = player.facing * player.dashSpeed;
+                player.dashDuration--;
+                if (player.dashDuration <= 0) {
+                    player.dashing = false;
+                    player.vx = 0;
+                }
+            } else {
+                if (moveLeft) {
+                    player.vx = -player.speed;
+                    player.facing = -1;
+                } else if (moveRight) {
+                    player.vx = player.speed;
+                    player.facing = 1;
+                } else {
+                    player.vx = 0;
+                }
+            }
+            
+            if (jump && player.grounded) {
+                player.vy = player.jumpForce;
+                player.grounded = false;
+            }
+            
+            player.vy += player.gravity;
+            player.y += player.vy;
+            
+            // Colisão plataformas
+            player.grounded = false;
+            for (let plat of platforms) {
+                if (player.x < plat.x + plat.width &&
+                    player.x + player.width > plat.x &&
+                    player.y < plat.y + plat.height &&
+                    player.y + player.height > plat.y) {
+                    
+                    if (player.vy > 0 && player.y + player.height - player.vy <= plat.y) {
+                        player.y = plat.y - player.height;
+                        player.vy = 0;
+                        player.grounded = true;
+                    } else if (player.vy < 0 && player.y - player.vy >= plat.y + plat.height) {
+                        player.y = plat.y + plat.height;
+                        player.vy = 0;
+                    }
+                }
+            }
+            
+            player.x += player.vx;
+            for (let plat of platforms) {
+                if (player.x < plat.x + plat.width &&
+                    player.x + player.width > plat.x &&
+                    player.y < plat.y + plat.height &&
+                    player.y + player.height > plat.y) {
+                    
+                    if (player.vx > 0) {
+                        player.x = plat.x - player.width;
+                    } else if (player.vx < 0) {
+                        player.x = plat.x + plat.width;
+                    }
+                    player.vx = 0;
+                }
+            }
+            
+            if (player.x < 0) player.x = 0;
+            if (player.x > levelWidth - player.width) player.x = levelWidth - player.width;
+            
+            cameraX = player.x - canvas.width / 3;
+            if (cameraX < 0) cameraX = 0;
+            if (cameraX > levelWidth - canvas.width) cameraX = levelWidth - canvas.width;
+            
+            if (player.y > canvas.height) {
+                if (godMode) {
+                    player.y = 300;
+                    player.vy = 0;
+                    player.x = 50;
+                    cameraX = 0;
+                } else {
+                    loseLife();
+                }
+            }
+            
+            // Atualizar inimigos
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                let enemy = enemies[i];
+                
+                if (enemy.type === 'walker') {
+                    enemy.x += enemy.vx;
+                    let enemyGrounded = false;
+                    for (let plat of platforms) {
+                        if (enemy.x < plat.x + plat.width &&
+                            enemy.x + enemy.width > plat.x &&
+                            enemy.y + enemy.height <= plat.y + plat.height &&
+                            enemy.y + enemy.height >= plat.y) {
+                            enemyGrounded = true;
+                        }
+                    }
+                    if (enemy.x <= 0 || enemy.x >= levelWidth - enemy.width || !enemyGrounded) {
+                        enemy.vx = -enemy.vx;
+                    }
+                } else if (enemy.type === 'flyer') {
+                    enemy.x += enemy.vx;
+                    enemy.y = enemy.baseY + Math.sin(Date.now() / 500) * enemy.amplitude;
+                    if (enemy.x <= 0 || enemy.x >= levelWidth - enemy.width) {
+                        enemy.vx = -enemy.vx;
+                    }
+                }
+                
+                // Colisão jogador-inimigo
+                if (player.x < enemy.x + enemy.width &&
+                    player.x + player.width > enemy.x &&
+                    player.y < enemy.y + enemy.height &&
+                    player.y + player.height > enemy.y) {
+                    
+                    // Pulando em cima do inimigo (knockback melhorado)
+                    if (player.vy > 0 && player.y + player.height - player.vy <= enemy.y + 10) {
+                        enemies.splice(i, 1);
+                        player.vy = player.jumpForce * 1.4; // Knockback muito mais forte
+                    } else if (player.dashing) {
+                        enemies.splice(i, 1);
+                    } else if (!godMode && player.invincible <= 0) {
+                        loseLife();
+                    }
+                }
+            }
+            
+            // Boss update
+            if (boss && boss.hp > 0) {
+                if (boss.invincible > 0) boss.invincible--;
+                if (boss.attackCooldown > 0) boss.attackCooldown--;
+                
+                boss.x += boss.vx;
+                if (boss.x <= 1700 || boss.x >= levelWidth - boss.width - 50) {
+                    boss.vx = -boss.vx;
+                }
+                
+                // Colisão com jogador
+                if (player.x < boss.x + boss.width &&
+                    player.x + player.width > boss.x &&
+                    player.y < boss.y + boss.height &&
+                    player.y + player.height > boss.y) {
+                    
+                    // Pulando na cabeça do boss
+                    if (player.vy > 0 && player.y + player.height - player.vy <= boss.y + 15 && boss.invincible <= 0) {
+                        boss.hp--;
+                        boss.invincible = 30;
+                        player.vy = player.jumpForce * 1.5; // Knockback muito forte
+                        player.y = boss.y - player.height; // Garante que fique acima
+                        
+                        console.log('Boss hit! HP:', boss.hp);
+                        
+                        if (boss.hp <= 0) {
+                            boss = null;
+                            gameState = 'bossDefeated';
+                        }
+                    } else if (player.dashing && boss.invincible <= 0) {
+                        boss.hp--;
+                        boss.invincible = 30;
+                        player.vx = -player.facing * 8; // Recuo do dash
+                        
+                        console.log('Boss hit by dash! HP:', boss.hp);
+                        
+                        if (boss.hp <= 0) {
+                            boss = null;
+                            gameState = 'bossDefeated';
+                        }
+                    } else if (!godMode && player.invincible <= 0 && boss.invincible <= 0) {
+                        loseLife();
+                    }
+                }
+            }
+            
+            // Moedas
+            for (let coin of coins) {
+                if (!coin.collected) {
+                    if (player.x < coin.x + 15 &&
+                        player.x + player.width > coin.x &&
+                        player.y < coin.y + 15 &&
+                        player.y + player.height > coin.y) {
+                        coin.collected = true;
+                        totalCoins++;
+                        updateDisplay();
+                    }
+                }
+            }
+            
+            // Bandeira
+            if (player.x < flag.x + flag.width &&
+                player.x + player.width > flag.x &&
+                player.y < flag.y + flag.height &&
+                player.y + player.height > flag.y) {
+                
+                if (totalCoins >= coinsPerLevel) {
+                    if (currentLevel === 5 && boss && boss.hp > 0) {
+                        // Não pode passar sem matar o boss
+                    } else {
+                        gameState = 'win';
+                    }
+                }
+            }
+            
+            if (gameState === 'bossDefeated') {
+                if (player.x < flag.x + flag.width &&
+                    player.x + player.width > flag.x &&
+                    player.y < flag.y + flag.height &&
+                    player.y + player.height > flag.y &&
+                    totalCoins >= coinsPerLevel) {
+                    gameState = 'win';
+                }
+            }
+        }
+        
+        function loseLife() {
+            if (godMode) return; // Modo invencível ignora dano
+            
+            lives--;
+            updateDisplay();
+            
+            if (lives <= 0) {
+                gameState = 'gameover';
+                lives = 0;
+            } else {
+                player.x = 50;
+                player.y = 300;
+                player.vy = 0;
+                player.invincible = 60;
+                cameraX = 0;
+            }
+        }
+        
+        function draw() {
+            ctx.save();
+            ctx.translate(-cameraX, 0);
+            
+            // Fundo
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            if (currentLevel === 5) {
+                gradient.addColorStop(0, '#2c3e50');
+                gradient.addColorStop(1, '#34495e');
+            } else {
+                gradient.addColorStop(0, '#87CEEB');
+                gradient.addColorStop(1, '#98FB98');
+            }
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, levelWidth, canvas.height);
+            
+            // Nuvens
+            if (currentLevel !== 5) {
+                ctx.fillStyle = 'white';
+                for (let i = 0; i < 10; i++) {
+                    let cloudX = (i * 250 + 100) % levelWidth;
+                    ctx.beginPath();
+                    ctx.arc(cloudX, 50, 25, 0, Math.PI * 2);
+                    ctx.arc(cloudX + 30, 45, 30, 0, Math.PI * 2);
+                    ctx.arc(cloudX + 60, 50, 25, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            
+            // Plataformas
+            for (let plat of platforms) {
+                ctx.fillStyle = plat.color;
+                ctx.fillRect(plat.x, plat.y, plat.width, plat.height);
+                ctx.strokeStyle = '#3e2723';
+                ctx.lineWidth = 1;
+                for (let i = 0; i < plat.width; i += 20) {
+                    ctx.strokeRect(plat.x + i, plat.y, 20, plat.height);
+                }
+            }
+            
+            // Moedas
+            for (let coin of coins) {
+                if (!coin.collected) {
+                    ctx.fillStyle = '#FFD700';
+                    ctx.beginPath();
+                    ctx.arc(coin.x + 7, coin.y + 7, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#FFA500';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.fillStyle = '#FFF8DC';
+                    ctx.beginPath();
+                    ctx.arc(coin.x + 5, coin.y + 5, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            
+            // Inimigos
+            for (let enemy of enemies) {
+                if (enemy.type === 'walker') {
+                    ctx.fillStyle = enemy.color;
+                    ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(enemy.x + 5, enemy.y + 5, 8, 8);
+                    ctx.fillRect(enemy.x + 17, enemy.y + 5, 8, 8);
+                    ctx.fillStyle = 'black';
+                    ctx.fillRect(enemy.x + 7, enemy.y + 7, 4, 4);
+                    ctx.fillRect(enemy.x + 19, enemy.y + 7, 4, 4);
+                } else if (enemy.type === 'flyer') {
+                    ctx.fillStyle = enemy.color;
+                    ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+                    ctx.fillStyle = '#f39c12';
+                    ctx.beginPath();
+                    ctx.moveTo(enemy.x - 5, enemy.y + 10);
+                    ctx.lineTo(enemy.x - 15, enemy.y);
+                    ctx.lineTo(enemy.x - 5, enemy.y + 20);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.moveTo(enemy.x + enemy.width + 5, enemy.y + 10);
+                    ctx.lineTo(enemy.x + enemy.width + 15, enemy.y);
+                    ctx.lineTo(enemy.x + enemy.width + 5, enemy.y + 20);
+                    ctx.fill();
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(enemy.x + 5, enemy.y + 8, 8, 8);
+                    ctx.fillRect(enemy.x + 17, enemy.y + 8, 8, 8);
+                    ctx.fillStyle = 'black';
+                    ctx.fillRect(enemy.x + 7, enemy.y + 10, 4, 4);
+                    ctx.fillRect(enemy.x + 19, enemy.y + 10, 4, 4);
+                }
+            }
+            
+            // Boss
+            if (boss && boss.hp > 0) {
+                ctx.fillStyle = boss.invincible % 10 < 5 ? boss.color : '#f1c40f';
+                ctx.fillRect(boss.x, boss.y, boss.width, boss.height);
+                
+                ctx.fillStyle = '#f1c40f';
+                ctx.beginPath();
+                ctx.moveTo(boss.x, boss.y);
+                ctx.lineTo(boss.x + 10, boss.y - 20);
+                ctx.lineTo(boss.x + 20, boss.y - 5);
+                ctx.lineTo(boss.x + 30, boss.y - 25);
+                ctx.lineTo(boss.x + 40, boss.y - 5);
+                ctx.lineTo(boss.x + 50, boss.y - 20);
+                ctx.lineTo(boss.x + 60, boss.y);
+                ctx.fill();
+                
+                ctx.fillStyle = '#e74c3c';
+                ctx.fillRect(boss.x + 10, boss.y + 10, 12, 12);
+                ctx.fillRect(boss.x + 38, boss.y + 10, 12, 12);
+                ctx.fillStyle = 'black';
+                ctx.fillRect(boss.x + 14, boss.y + 14, 4, 4);
+                ctx.fillRect(boss.x + 42, boss.y + 14, 4, 4);
+                
+                ctx.fillStyle = '#e74c3c';
+                ctx.fillRect(boss.x, boss.y - 35, boss.width, 8);
+                ctx.fillStyle = '#2ecc71';
+                ctx.fillRect(boss.x, boss.y - 35, boss.width * (boss.hp / boss.maxHp), 8);
+                ctx.strokeStyle = 'white';
+                ctx.strokeRect(boss.x, boss.y - 35, boss.width, 8);
+            }
+            
+            // Bandeira
+            if (!boss || boss.hp <= 0 || currentLevel !== 5) {
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(flag.x, flag.y, 5, flag.height);
+                const flagColors = ['#e74c3c', '#3498db', '#f1c40f', '#9b59b6', '#e67e22'];
+                ctx.fillStyle = flagColors[currentLevel - 1];
+                ctx.beginPath();
+                ctx.moveTo(flag.x + 5, flag.y);
+                ctx.lineTo(flag.x + 30, flag.y + 15);
+                ctx.lineTo(flag.x + 5, flag.y + 30);
+                ctx.fill();
+            }
+            
+            // Jogador
+            if (player.invincible % 10 < 5 || player.invincible <= 0 || godMode) {
+                ctx.fillStyle = godMode ? '#f1c40f' : (player.dashing ? '#f39c12' : player.color);
+                ctx.fillRect(player.x, player.y, player.width, player.height);
+                
+                if (godMode) {
+                    // Efeito de aura no modo invencível
+                    ctx.strokeStyle = '#f1c40f';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(player.x - 3, player.y - 3, player.width + 6, player.height + 6);
+                }
+                
+                ctx.fillStyle = '#c0392b';
+                ctx.fillRect(player.x - 2, player.y - 8, player.width + 4, 10);
+                
+                ctx.fillStyle = 'white';
+                if (player.facing === 1) {
+                    ctx.fillRect(player.x + 20, player.y + 8, 8, 8);
+                } else {
+                    ctx.fillRect(player.x + 2, player.y + 8, 8, 8);
+                }
+                ctx.fillStyle = 'black';
+                if (player.facing === 1) {
+                    ctx.fillRect(player.x + 22, player.y + 10, 4, 4);
+                } else {
+                    ctx.fillRect(player.x + 4, player.y + 10, 4, 4);
+                }
+            }
+            
+            ctx.restore();
+            
+            // Overlays
+            if (gameState === 'menu') {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = '#f1c40f';
+                ctx.font = '50px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('SUPER AVENTUREIRO 2', canvas.width / 2, 120);
+                
+                ctx.fillStyle = 'white';
+                ctx.font = '24px Arial';
+                ctx.fillText('🎮 Controles:', canvas.width / 2, 200);
+                ctx.font = '18px Arial';
+                ctx.fillText('Setas/WASD: Mover | Espaço: Pular | Shift/X: Dash', canvas.width / 2, 240);
+                ctx.fillText('Pular em inimigos: Derrotar (knockback melhorado!)', canvas.width / 2, 270);
+                ctx.fillText('🎮 Gamepad: A=Pular | X=Dash | D-Pad=Mover', canvas.width / 2, 300);
+                ctx.fillText('👑 Segredo: R+L (teclado) ou RB+LB (gamepad) = Modo Invencível', canvas.width / 2, 330);
+                
+                ctx.fillStyle = '#2ecc71';
+                ctx.font = '30px Arial';
+                const blink = Math.sin(Date.now() / 500) > 0;
+                if (blink) {
+                    ctx.fillText('PRESSIONE ENTER OU 🎮 A PARA COMEÇAR', canvas.width / 2, 370);
+                }
+            } else if (gameState === 'gameover') {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#e74c3c';
+                ctx.font = '40px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 20);
+                ctx.fillStyle = 'white';
+                ctx.font = '20px Arial';
+                ctx.fillText(`Vidas restantes: ${godMode ? '∞' : lives}`, canvas.width / 2, canvas.height / 2 + 20);
+                ctx.fillText('Pressione ENTER ou 🎮 A para continuar', canvas.width / 2, canvas.height / 2 + 50);
+            } else if (gameState === 'win') {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#f1c40f';
+                ctx.font = '40px Arial';
+                ctx.textAlign = 'center';
+                if (currentLevel < 5) {
+                    ctx.fillText(`FASE ${currentLevel} COMPLETA!`, canvas.width / 2, canvas.height / 2 - 20);
+                } else {
+                    ctx.fillText('🏆 VITÓRIA FINAL! 🏆', canvas.width / 2, canvas.height / 2 - 20);
+                }
+                ctx.fillStyle = 'white';
+                ctx.font = '20px Arial';
+                ctx.fillText('Pressione ENTER ou 🎮 A para continuar', canvas.width / 2, canvas.height / 2 + 30);
+            } else if (gameState === 'bossDefeated') {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#2ecc71';
+                ctx.font = '40px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('BOSS DERROTADO!', canvas.width / 2, canvas.height / 2 - 20);
+                ctx.fillStyle = 'white';
+                ctx.font = '20px Arial';
+                ctx.fillText('Agora vá até a bandeira para completar a fase!', canvas.width / 2, canvas.height / 2 + 20);
+            }
+        }
+        
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        loadLevel(1);
+        gameState = 'menu';
+        updateDisplay();
+        gameLoop();
+    </script>
+</body>
+</html>

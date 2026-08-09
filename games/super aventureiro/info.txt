@@ -1,0 +1,7 @@
+name=super aventureiro
+dev=asafgamery
+version=1.0
+desc=jogo de plataforma
+color=#FFFFFF
+genre=plataforma
+year=2026

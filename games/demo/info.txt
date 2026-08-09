@@ -1,0 +1,7 @@
+name=STAR BLASTER
+dev=Antigravity Studios
+version=1.0
+desc=Destrua os asteroides antes que cheguem a Terra! Use setas ou WASD para mover e ESPACO para atirar.
+color=#0d1f3c
+genre=Shooter
+year=2026

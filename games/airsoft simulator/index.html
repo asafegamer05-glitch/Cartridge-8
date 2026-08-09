@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Airsoft Simulator 2D</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- MAIN MENU -->
+    <div id="main-menu" class="overlay active">
+        <div class="cod-menu-container">
+            <header class="cod-header">
+                <div class="logo-block">
+                    <div class="logo-tag">AIRSOFT</div>
+                    <div class="logo-sub">OPERATOR 2D</div>
+                </div>
+                <div class="profile-summary">
+                    <span class="header-stat">💰 <span id="header-coins">0</span></span>
+                    <span class="header-stat">🏆 <span id="header-rank">Recruta 1</span></span>
+                </div>
+                <nav class="cod-tabs">
+                    <button class="tab-btn active" data-tab="tab-play">
+                        <span class="tab-icon">&#9654;</span> JOGAR
+                    </button>
+                    <button class="tab-btn" data-tab="tab-arsenal">
+                        <span class="tab-icon">&#9876;</span> ARSENAL
+                    </button>
+                    <button class="tab-btn" data-tab="tab-shop">
+                        <span class="tab-icon">&#9733;</span> LOJA
+                    </button>
+                    <button class="tab-btn" data-tab="tab-settings">
+                        <span class="tab-icon">&#9881;</span> AJUSTES
+                    </button>
+                </nav>
+            </header>
+
+            <div class="cod-content-area">
+                <!-- PLAY TAB -->
+                <div id="tab-play" class="tab-pane active">
+                    <div class="play-layout">
+                        <div class="play-options">
+                            <div class="section-label">SELEÇÃO DE ARENA</div>
+                            <div class="radio-group" id="map-selector">
+                                <label class="radio-card active">
+                                    <input type="radio" name="game-map" value="standard" checked>
+                                    <div class="radio-card-inner">
+                                        <div class="radio-card-header">
+                                            <span class="rc-title">FLORESTA PADRÃO</span>
+                                            <span class="rc-badge">5 v 5</span>
+                                        </div>
+                                        <span class="rc-desc">2000×2000px · Combate rápido e intenso</span>
+                                    </div>
+                                </label>
+                                <label class="radio-card">
+                                    <input type="radio" name="game-map" value="giant">
+                                    <div class="radio-card-inner">
+                                        <div class="radio-card-header">
+                                            <span class="rc-title">FLORESTA GIGANTE</span>
+                                            <span class="rc-badge badge-red">10 v 10</span>
+                                        </div>
+                                        <span class="rc-desc">4000×4000px · Táticas avançadas</span>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <div class="section-label" style="margin-top:20px">MODO DE JOGO</div>
+                            <div class="radio-group" id="mode-selector">
+                                <label class="radio-card active">
+                                    <input type="radio" name="game-mode" value="points" checked>
+                                    <div class="radio-card-inner">
+                                        <div class="radio-card-header">
+                                            <span class="rc-title">PONTOS</span>
+                                            <span class="rc-badge">2 MIN</span>
+                                        </div>
+                                        <span class="rc-desc">Respawn ilimitado. Cada hit = 1 ponto para o time.</span>
+                                    </div>
+                                </label>
+                                <label class="radio-card">
+                                    <input type="radio" name="game-mode" value="elimination">
+                                    <div class="radio-card-inner">
+                                        <div class="radio-card-header">
+                                            <span class="rc-title">ELIMINAÇÃO</span>
+                                            <span class="rc-badge badge-red">SEM RESPAWN</span>
+                                        </div>
+                                        <span class="rc-desc">Morra e vire espectador até a rodada acabar.</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="play-sidebar">
+                            <div class="operator-preview">
+                                <canvas id="previewCanvas" width="160" height="160"></canvas>
+                                <div class="op-label">OPERADOR VERDE</div>
+                                <div class="op-sub" id="preview-weapon-name">Fuzil M4A1</div>
+                            </div>
+                            <div class="op-status">PRONTO PARA MISSÃO</div>
+                            <button id="btn-play" class="btn-deploy">&#9654; DEPLOY</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ARSENAL TAB -->
+                <div id="tab-arsenal" class="tab-pane">
+                    <div class="arsenal-layout">
+                        <div class="arsenal-left">
+                            <div class="section-label">PATENTE ATUAL (CAMINHO DE FORÇA)</div>
+                            <div class="rank-card">
+                                <h3 id="arsenal-rank-name">Recruta 1</h3>
+                                <div class="rank-progress-bar-wrap">
+                                    <div id="rank-progress-fill" class="rank-progress-bar-fill"></div>
+                                </div>
+                                <div class="rank-points-lbl"><span id="arsenal-rank-points">0</span> / 100 XP</div>
+                            </div>
+
+                            <div class="section-label" style="margin-top:20px">SELECIONAR SKIN</div>
+                            <div class="skins-grid" id="skins-grid">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+                        
+                        <div class="arsenal-right">
+                            <div class="section-label">CARREGAMENTO ATUAL (ARMAS EQUIPADAS)</div>
+                            <div class="arsenal-grid" id="arsenal-grid">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SHOP TAB -->
+                <div id="tab-shop" class="tab-pane">
+                    <div class="shop-header">
+                        <div class="section-label">ARMARIA COMPLETA & LOJA</div>
+                        <p class="shop-sub">Selecione armas para comprar ou equipar no Primário, Secundário e Melee.</p>
+                    </div>
+                    <div class="shop-weapons-grid" id="shop-weapons-grid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- SETTINGS TAB -->
+                <div id="tab-settings" class="tab-pane">
+                    <div class="settings-grid">
+                        <div class="settings-col">
+                            <div class="section-label">INTELIGÊNCIA ARTIFICIAL</div>
+                            <div class="toggle-group" id="difficulty-selector">
+                                <button class="btn-toggle active" data-difficulty="easy">FÁCIL</button>
+                                <button class="btn-toggle" data-difficulty="medium">MÉDIO</button>
+                                <button class="btn-toggle" data-difficulty="hard">DIFÍCIL</button>
+                            </div>
+                            
+                            <div class="section-label" style="margin-top:20px">AJUSTES BIZARROS</div>
+                            <div class="toggle-group-custom">
+                                <button class="btn-toggle-custom" id="btn-admin-toggle">MODO ADMIN: <span id="admin-status">OFF</span></button>
+                                <button class="btn-toggle-custom" id="btn-skibidi-toggle">MODO SKIBIDI: <span id="skibidi-status">OFF</span></button>
+                            </div>
+                        </div>
+
+                        <div class="settings-col">
+                            <div class="section-label">SALVAR / IMPORTAR PERFIL</div>
+                            <div class="profile-actions">
+                                <button class="btn-profile-action" id="btn-export-profile">&#128190; Exportar JSON</button>
+                                <button class="btn-profile-action" id="btn-import-profile">&#128194; Importar JSON</button>
+                                <input type="file" id="file-import" style="display:none" accept=".json">
+                            </div>
+                            
+                            <div class="section-label" style="margin-top:20px">GAMEPAD (CONTROLE)</div>
+                            <div class="settings-info-box" style="margin-top:5px; font-size:13px; line-height: 1.4; background: rgba(0,0,0,0.2); border-left: 3px solid #ff9100; padding: 10px;">
+                                <p>🎮 <strong>Gamepad:</strong> <span id="gamepad-status" style="color: #ff9100; font-weight: bold;">Nenhum</span></p>
+                                <p style="margin-top:5px; font-size:11px; color: #aaa;">
+                                    <strong>Analógico Esquerdo:</strong> Mover<br>
+                                    <strong>Analógico Direito:</strong> Mirar (Twin-stick)<br>
+                                    <strong>Gatilho Dir. (R2/RT) ou R1:</strong> Atirar<br>
+                                    <strong>Gatilho Esq. (L2/LT) ou L1:</strong> Correr<br>
+                                    <strong>Botão X / Quadrado (❌):</strong> Recarregar (R)<br>
+                                    <strong>Botão B / Círculo (⭕):</strong> Abastecer Cartucho (T)<br>
+                                    <strong>Botão Y / Triângulo (🔺):</strong> Alternar Arma<br>
+                                    <strong>D-pad:</strong> Seleção rápida de armas
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-info-box" style="margin-top:20px">
+                        <p>O Modo Admin concede dinheiro infinito e libera todas as skins instantaneamente! O Modo Skibidi ativa luzes e cores piscantes psicodélicas durante a partida.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HUD -->
+    <div id="game-hud">
+        <div class="hud-top">
+            <div class="score-block green-score">
+                <div class="score-team-tag green-tag">VERDE</div>
+                <div id="score-friendly" class="score-number">0</div>
+            </div>
+            <div class="hud-center">
+                <div id="match-mode-label" class="hud-mode-lbl">PONTOS</div>
+                <div id="match-timer" class="hud-timer">02:00</div>
+            </div>
+            <div class="score-block red-score">
+                <div id="score-enemy" class="score-number">0</div>
+                <div class="score-team-tag red-tag">VERMELHO</div>
+            </div>
+        </div>
+
+        <div class="hud-bottom">
+            <div class="hud-weapon-panel">
+                <div class="hwp-weapon-row">
+                    <div class="hwp-left">
+                        <div id="hud-weapon-name" class="hwp-name">Fuzil M4A1</div>
+                        <div id="hud-weapon-type" class="hwp-type">PRIMÁRIA</div>
+                    </div>
+                    <div class="hwp-ammo-block">
+                        <span id="hud-ammo-mag" class="ammo-mag">20</span>
+                        <span class="ammo-sep">/</span>
+                        <span id="hud-ammo-cap" class="ammo-cap">20</span>
+                    </div>
+                </div>
+                <!-- Vest Magazine Icons -->
+                <div class="vest-mags" id="hud-vest-mags">
+                    <div class="mag-slot" id="mag-slot-0">
+                        <div class="mag-body">
+                            <div class="mag-rounds"></div>
+                        </div>
+                    </div>
+                    <div class="mag-slot" id="mag-slot-1">
+                        <div class="mag-body">
+                            <div class="mag-rounds"></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Minigame -->
+                <div id="minigame-container" class="minigame-container hidden">
+                    <div class="minigame-title">&#9889; ABASTECENDO CARTUCHO</div>
+                    <div class="minigame-bar-bg">
+                        <div id="minigame-progress" class="minigame-bar-fill"></div>
+                    </div>
+                    <div class="minigame-hint">Solte [T] para cancelar</div>
+                </div>
+                <div id="hud-reload-prompt" class="hud-alert hud-alert-warn hidden">&#8635; [R] Trocar Cartucho</div>
+                <div id="hud-refill-prompt" class="hud-alert hud-alert-danger hidden">&#9888; Sem cartuchos! Segure [T] parado</div>
+                <div id="hud-status-msg" class="hwp-status">PRONTO PARA AÇÃO</div>
+            </div>
+        </div>
+
+        <!-- Weapon slots strip (bottom-left) -->
+        <div class="hud-weapon-slots">
+            <div class="ws-slot" id="ws-0">
+                <span class="ws-key">1</span>
+                <span class="ws-name" id="ws-name-0">M4A1</span>
+            </div>
+            <div class="ws-slot" id="ws-1">
+                <span class="ws-key">2</span>
+                <span class="ws-name" id="ws-name-1">G18</span>
+            </div>
+            <div class="ws-slot" id="ws-2">
+                <span class="ws-key">3</span>
+                <span class="ws-name" id="ws-name-2">Faca</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Spectator UI -->
+    <div id="spectator-ui" class="hidden">
+        <div class="spec-panel">
+            <div class="spec-live">&#9679; ESPECTADOR</div>
+            <h3 id="spec-target-name">Viper</h3>
+            <div id="spec-target-weapon" class="spec-wep">Fuzil M4A1</div>
+            <div class="spec-controls">
+                <button id="btn-spec-prev" class="spec-btn">&#8592; PREV</button>
+                <button id="btn-spec-next" class="spec-btn">NEXT &#8594;</button>
+            </div>
+            <button id="btn-skip-round" class="btn-skip">&#9654;&#9654; PULAR RODADA</button>
+        </div>
+    </div>
+
+    <!-- Game Over -->
+    <div id="game-over-screen" class="overlay">
+        <div class="gameover-panel">
+            <div id="go-result-tag" class="go-result-tag">VITÓRIA</div>
+            <h2 id="go-title">FIM DE PARTIDA</h2>
+            <p id="go-reason" class="go-reason">Seu time venceu!</p>
+            <div class="go-stats">
+                <div class="go-stat">
+                    <span class="gs-label">PLACAR</span>
+                    <span id="go-final-score" class="gs-value">5 – 3</span>
+                </div>
+                <div class="go-stat">
+                    <span class="gs-label">ELIMINAÇÕES</span>
+                    <span id="go-player-kills" class="gs-value">0</span>
+                </div>
+                <div class="go-stat">
+                    <span class="gs-label">ATINGIDO</span>
+                    <span id="go-player-deaths" class="gs-value">0</span>
+                </div>
+            </div>
+            <div class="go-actions">
+                <button id="btn-restart" class="btn-play-again">&#8635; JOGAR NOVAMENTE</button>
+                <button id="btn-to-menu" class="btn-back-menu">&#8592; MENU</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Controls -->
+    <div id="mobile-controls" class="hidden">
+        <div id="joystick-zone" class="joystick-zone">
+            <div id="joystick-base" class="joystick-base">
+                <div id="joystick-handle" class="joystick-handle"></div>
+            </div>
+            <div class="joystick-label">MOVER</div>
+        </div>
+        <div class="mobile-right-panel">
+            <div class="mobile-top-actions">
+                <button id="btn-mobile-refill" class="mob-btn mob-btn-t">T<span>Encher</span></button>
+                <button id="btn-mobile-swap" class="mob-btn mob-btn-swap">&#8644;<span>Trocar</span></button>
+                <button id="btn-mobile-reload" class="mob-btn mob-btn-r">R<span>Recarregar</span></button>
+            </div>
+            <button id="btn-mobile-shoot" class="mob-shoot-btn">ATIRAR</button>
+        </div>
+    </div>
+</div>
+<script src="game.js"></script>
+</body>
+</html>
