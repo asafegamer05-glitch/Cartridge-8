@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Star Blaster — Cartridge-8</title>
+  <title>Star Blaster � Cartridge-8</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="game.css">
@@ -28,122 +28,122 @@
     <span id="mp-status">P2P: CONECTANDO...</span>
   </div>
 
-  <!-- ── Overlay principal (título / game over) ── -->
+  <!-- -- Overlay principal (t�tulo / game over) -- -->
   <div id="overlay" class="hidden">
     <div id="overlay-content">
       <div id="overlay-title"></div>
       <div id="overlay-sub"></div>
       <div id="overlay-hint"></div>
-      <!-- Botões de menu (visíveis só no título) -->
+      <!-- Bot�es de menu (vis�veis s� no t�tulo) -->
       <div id="overlay-menu" class="hidden">
-        <button class="menu-btn solo-btn" id="btn-solo" onclick="menuSolo()">▶ JOGAR SOLO</button>
-        <button class="menu-btn mp-btn"   id="btn-mp"   onclick="menuMultiplayer()">◈ MULTIPLAYER P2P</button>
+        <button class="menu-btn solo-btn" id="btn-solo" onclick="menuSolo()">? JOGAR SOLO</button>
+        <button class="menu-btn mp-btn"   id="btn-mp"   onclick="menuMultiplayer()">? MULTIPLAYER P2P</button>
       </div>
     </div>
   </div>
 
-  <!-- ── Aviso de responsabilidade ── -->
+  <!-- -- Aviso de responsabilidade -- -->
   <div id="disclaimer-overlay" class="hidden">
     <div class="mp-modal">
-      <div class="mp-modal-title">⚠ AVISO IMPORTANTE</div>
+      <div class="mp-modal-title">? AVISO IMPORTANTE</div>
       <div class="mp-modal-body">
-        O criador do <strong>Cartridge-8</strong> não se responsabiliza por qualquer comportamento inadequado, conteúdo ofensivo ou má conduta de outros usuários durante o modo multiplayer.<br><br>
-        Jogue apenas com pessoas de sua confiança. A conexão é <strong>direta entre navegadores</strong> (P2P), sem passar por servidores do criador.<br><br>
-        <em>Ao continuar, você confirma que leu e aceita este aviso.</em>
+        O criador do <strong>Cartridge-8</strong> n�o se responsabiliza por qualquer comportamento inadequado, conte�do ofensivo ou m� conduta de outros usu�rios durante o modo multiplayer.<br><br>
+        Jogue apenas com pessoas de sua confian�a. A conex�o � <strong>direta entre navegadores</strong> (P2P), sem passar por servidores do criador.<br><br>
+        <em>Ao continuar, voc� confirma que leu e aceita este aviso.</em>
       </div>
       <div class="mp-modal-actions">
-        <button class="mp-action-btn"           onclick="acceptDisclaimer()">✔ ACEITO — CONTINUAR</button>
-        <button class="mp-action-btn btn-ghost"  onclick="cancelDisclaimer()">← VOLTAR</button>
+        <button class="mp-action-btn"           onclick="acceptDisclaimer()">? ACEITO � CONTINUAR</button>
+        <button class="mp-action-btn btn-ghost"  onclick="cancelDisclaimer()">? VOLTAR</button>
       </div>
     </div>
   </div>
 
-  <!-- ── Selecionar modo MP ── -->
+  <!-- -- Selecionar modo MP -- -->
   <div id="mp-mode-overlay" class="hidden">
     <div class="mp-modal">
-      <div class="mp-modal-title">◈ MULTIPLAYER P2P</div>
+      <div class="mp-modal-title">? MULTIPLAYER P2P</div>
       <div class="mp-modal-body">
         Conecte diretamente ao navegador do seu amigo!<br>
-        Vocês vão trocar <strong>dois códigos</strong> via Discord, WhatsApp ou qualquer mensagem. Nenhum servidor é necessário.
+        Voc�s v�o trocar <strong>dois c�digos</strong> via Discord, WhatsApp ou qualquer mensagem. Nenhum servidor � necess�rio.
       </div>
       <div class="mp-modal-actions">
-        <button class="mp-action-btn"            onclick="startHost()">🏠 CRIAR SALA</button>
-        <button class="mp-action-btn btn-pink"   onclick="startGuest()">🔗 ENTRAR NA SALA</button>
-        <button class="mp-action-btn btn-ghost"  onclick="cancelMP()">← VOLTAR</button>
+        <button class="mp-action-btn"            onclick="startHost()">?? CRIAR SALA</button>
+        <button class="mp-action-btn btn-pink"   onclick="startGuest()">?? ENTRAR NA SALA</button>
+        <button class="mp-action-btn btn-ghost"  onclick="cancelMP()">? VOLTAR</button>
       </div>
     </div>
   </div>
 
-  <!-- ── Fluxo HOST ── -->
+  <!-- -- Fluxo HOST -- -->
   <div id="mp-host-overlay" class="hidden">
     <div class="mp-modal wide">
-      <div class="mp-modal-title">🏠 CRIAR SALA — PASSO <span id="host-step-num">1</span> de 2</div>
+      <div class="mp-modal-title">?? CRIAR SALA � PASSO <span id="host-step-num">1</span> de 2</div>
 
-      <!-- Passo 1: Mostrar código de convite -->
+      <!-- Passo 1: Mostrar c�digo de convite -->
       <div id="host-step1">
         <div class="mp-modal-body">
-          Copie o código abaixo e mande para o seu amigo via Discord / WhatsApp:
+          Copie o c�digo abaixo e mande para o seu amigo via Discord / WhatsApp:
         </div>
-        <div id="host-generating" class="mp-status-msg blink">⏳ Gerando código da sala...</div>
+        <div id="host-generating" class="mp-status-msg blink">? Gerando c�digo da sala...</div>
         <textarea id="host-offer-code" class="code-box" readonly placeholder="Aguarde..."></textarea>
         <div class="mp-modal-actions" id="host-step1-actions" style="display:none">
-          <button class="mp-action-btn"           id="btn-copy-offer" onclick="copyHostOffer()">📋 COPIAR CÓDIGO</button>
-          <button class="mp-action-btn btn-pink"  onclick="goHostStep2()">PRÓXIMO PASSO →</button>
-          <button class="mp-action-btn btn-ghost" onclick="cancelMP()">← CANCELAR</button>
+          <button class="mp-action-btn"           id="btn-copy-offer" onclick="copyHostOffer()">?? COPIAR C�DIGO</button>
+          <button class="mp-action-btn btn-pink"  onclick="goHostStep2()">PR�XIMO PASSO ?</button>
+          <button class="mp-action-btn btn-ghost" onclick="cancelMP()">? CANCELAR</button>
         </div>
       </div>
 
-      <!-- Passo 2: Aguardar código de resposta -->
+      <!-- Passo 2: Aguardar c�digo de resposta -->
       <div id="host-step2" class="hidden">
         <div class="mp-modal-body">
-          Agora cole o <strong>código de resposta</strong> que seu amigo te enviou:
+          Agora cole o <strong>c�digo de resposta</strong> que seu amigo te enviou:
         </div>
-        <textarea id="host-answer-input" class="code-box" placeholder="Cole o código de resposta aqui..."></textarea>
-        <div id="host-connecting" class="mp-status-msg blink hidden">⏳ Conectando...</div>
-        <div id="host-error"      class="mp-status-msg err hidden">❌ Código inválido. Verifique e tente novamente.</div>
+        <textarea id="host-answer-input" class="code-box" placeholder="Cole o c�digo de resposta aqui..."></textarea>
+        <div id="host-connecting" class="mp-status-msg blink hidden">? Conectando...</div>
+        <div id="host-error"      class="mp-status-msg err hidden">? C�digo inv�lido. Verifique e tente novamente.</div>
         <div class="mp-modal-actions">
-          <button class="mp-action-btn"           onclick="hostConnect()">✔ CONECTAR</button>
-          <button class="mp-action-btn btn-ghost" onclick="cancelMP()">← CANCELAR</button>
+          <button class="mp-action-btn"           onclick="hostConnect()">? CONECTAR</button>
+          <button class="mp-action-btn btn-ghost" onclick="cancelMP()">? CANCELAR</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ── Fluxo GUEST ── -->
+  <!-- -- Fluxo GUEST -- -->
   <div id="mp-guest-overlay" class="hidden">
     <div class="mp-modal wide">
-      <div class="mp-modal-title">🔗 ENTRAR NA SALA — PASSO <span id="guest-step-num">1</span> de 2</div>
+      <div class="mp-modal-title">?? ENTRAR NA SALA � PASSO <span id="guest-step-num">1</span> de 2</div>
 
-      <!-- Passo 1: Colar código de convite -->
+      <!-- Passo 1: Colar c�digo de convite -->
       <div id="guest-step1">
         <div class="mp-modal-body">
-          Cole o <strong>código da sala</strong> que o seu amigo te enviou:
+          Cole o <strong>c�digo da sala</strong> que o seu amigo te enviou:
         </div>
-        <textarea id="guest-offer-input" class="code-box" placeholder="Cole o código da sala aqui..."></textarea>
-        <div id="guest-generating" class="mp-status-msg blink hidden">⏳ Gerando código de resposta...</div>
-        <div id="guest-error"      class="mp-status-msg err hidden">❌ Código inválido. Verifique e tente novamente.</div>
+        <textarea id="guest-offer-input" class="code-box" placeholder="Cole o c�digo da sala aqui..."></textarea>
+        <div id="guest-generating" class="mp-status-msg blink hidden">? Gerando c�digo de resposta...</div>
+        <div id="guest-error"      class="mp-status-msg err hidden">? C�digo inv�lido. Verifique e tente novamente.</div>
         <div class="mp-modal-actions">
-          <button class="mp-action-btn"           onclick="guestGenAnswer()">GERAR RESPOSTA →</button>
-          <button class="mp-action-btn btn-ghost" onclick="cancelMP()">← CANCELAR</button>
+          <button class="mp-action-btn"           onclick="guestGenAnswer()">GERAR RESPOSTA ?</button>
+          <button class="mp-action-btn btn-ghost" onclick="cancelMP()">? CANCELAR</button>
         </div>
       </div>
 
-      <!-- Passo 2: Mostrar código de resposta -->
+      <!-- Passo 2: Mostrar c�digo de resposta -->
       <div id="guest-step2" class="hidden">
         <div class="mp-modal-body">
-          Copie este <strong>código de resposta</strong> e mande de volta para o dono da sala:
+          Copie este <strong>c�digo de resposta</strong> e mande de volta para o dono da sala:
         </div>
         <textarea id="guest-answer-code" class="code-box" readonly></textarea>
         <div class="mp-modal-actions">
-          <button class="mp-action-btn" id="btn-copy-answer" onclick="copyGuestAnswer()">📋 COPIAR RESPOSTA</button>
-          <button class="mp-action-btn btn-ghost"            onclick="cancelMP()">← CANCELAR</button>
+          <button class="mp-action-btn" id="btn-copy-answer" onclick="copyGuestAnswer()">?? COPIAR RESPOSTA</button>
+          <button class="mp-action-btn btn-ghost"            onclick="cancelMP()">? CANCELAR</button>
         </div>
-        <div class="mp-waiting blink">⏳ Aguardando conexão do host...</div>
+        <div class="mp-waiting blink">? Aguardando conex�o do host...</div>
       </div>
     </div>
   </div>
 
-  <div id="exit-hint">ESC / START — SAIR</div>
+  <div id="exit-hint">ESC / START � SAIR</div>
   <script src="game.js"></script>
 </body>
 </html>

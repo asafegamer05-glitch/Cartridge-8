@@ -1,7 +1,7 @@
 /* ============================================
-   STAR BLASTER — Cartridge-8 Demo Game v2
-   Controles: WASD / Setas + ESPAÇO / Z para atirar
-              Gamepad: D-pad / Analógico + Botão A / X
+   STAR BLASTER � Cartridge-8 Demo Game v2
+   Controles: WASD / Setas + ESPA�O / Z para atirar
+              Gamepad: D-pad / Anal�gico + Bot�o A / X
               SAIR: SELECT + START (Gamepad) ou ESC (Teclado)
    Multiplayer: WebRTC P2P (sem servidor)
    ============================================ */
@@ -10,7 +10,7 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx    = canvas.getContext('2d');
 
-const W = 256, H = 224; // Resolução nativa retrô
+const W = 256, H = 224; // Resolu��o nativa retr�
 canvas.width  = W;
 canvas.height = H;
 
@@ -24,7 +24,7 @@ function resizeCanvas() {
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
-// ── Palette ────────────────────────────────────────────────────
+// -- Palette ----------------------------------------------------
 const PAL = {
   bg:        '#000c18',
   star:      '#5de4ff',
@@ -39,7 +39,7 @@ const PAL = {
   textDim:   '#2a6a80',
 };
 
-// ── Game States ────────────────────────────────────────────────
+// -- Game States ------------------------------------------------
 const GS = {
   TITLE:    'TITLE',
   PLAYING:  'PLAYING',
@@ -74,21 +74,21 @@ const GP = {
   shoot: false, start: false, select: false,
 };
 
-// ── Multiplayer State ──────────────────────────────────────────
-// Definido aqui no topo para evitar erros de referência
+// -- Multiplayer State ------------------------------------------
+// Definido aqui no topo para evitar erros de refer�ncia
 const MP = {
   active:       false,
   role:         null,   // 'host' | 'guest'
   pc:           null,   // RTCPeerConnection
   dc:           null,   // RTCDataChannel
   connected:    false,
-  ship2:        null,   // { x, y } posição da nave remota
+  ship2:        null,   // { x, y } posi��o da nave remota
   invincTimer2: 0,      // invencibilidade da nave remota (host rastreia)
   guestShot:    false,  // flag: guest atirou neste frame
   sendTick:     0,      // contador para throttle de envio
 };
 
-// ── Title menu focus / gamepad navigation ──────────────────────
+// -- Title menu focus / gamepad navigation ----------------------
 let titleMenuIndex = 0;
 const TITLE_MENU_BUTTON_IDS = ['btn-solo', 'btn-mp'];
 let gpLastNavTime = 0;
@@ -107,7 +107,7 @@ function updateTitleMenuFocus() {
   });
 }
 
-// ── Generic overlay button navigation ─────────────────────────
+// -- Generic overlay button navigation -------------------------
 const MP_OVERLAYS = ['disclaimer-overlay', 'mp-mode-overlay', 'mp-host-overlay', 'mp-guest-overlay'];
 const overlayIndices = {};
 
@@ -133,13 +133,13 @@ function updateOverlayFocus(overlayId) {
   });
 }
 
-// ── Helpers ────────────────────────────────────────────────────
+// -- Helpers ----------------------------------------------------
 const rnd   = (a, b) => Math.random() * (b - a) + a;
 const irnd  = (a, b) => Math.floor(rnd(a, b + 1));
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const dist  = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
-// ── Stars ──────────────────────────────────────────────────────
+// -- Stars ------------------------------------------------------
 function initStars() {
   stars = [];
   for (let i = 0; i < 70; i++) {
@@ -169,7 +169,7 @@ function drawStars() {
   ctx.globalAlpha = 1;
 }
 
-// ── Ship ────────────────────────────────────────────────────────
+// -- Ship --------------------------------------------------------
 function createShip(startX) {
   return { x: startX !== undefined ? startX : W / 2, y: H - 30, w: 10, h: 12, speed: 2 };
 }
@@ -240,7 +240,7 @@ function updateShip() {
   if (invincTimer  > 0) invincTimer--;
 }
 
-// ── Bullets ────────────────────────────────────────────────────
+// -- Bullets ----------------------------------------------------
 function drawBullet(b) {
   const color = b.fromGuest ? PAL.bullet2 : PAL.bullet;
   ctx.fillStyle   = color;
@@ -250,7 +250,7 @@ function drawBullet(b) {
   ctx.shadowBlur  = 0;
 }
 
-// ── Enemies ────────────────────────────────────────────────────
+// -- Enemies ----------------------------------------------------
 function spawnEnemy() {
   const big   = level >= 3 && Math.random() < 0.2;
   const speed = rnd(0.4, 0.8 + level * 0.12);
@@ -313,7 +313,7 @@ function updateEnemies() {
   enemies = enemies.filter(e => e.y < H + e.r * 2);
 }
 
-// ── Particles ──────────────────────────────────────────────────
+// -- Particles --------------------------------------------------
 function spawnParticle(x, y, color, count = 8, vy = 0, speed = 1.5) {
   for (let i = 0; i < count; i++) {
     const a = Math.random() * Math.PI * 2;
@@ -348,7 +348,7 @@ function drawParticles() {
   ctx.globalAlpha = 1;
 }
 
-// ── Collision ──────────────────────────────────────────────────
+// -- Collision --------------------------------------------------
 function checkCollisions() {
   // Balas x inimigos
   for (let bi = bullets.length - 1; bi >= 0; bi--) {
@@ -385,7 +385,7 @@ function checkCollisions() {
         if (lives <= 0) {
           state = GS.GAMEOVER;
           if (score > hiScore) hiScore = score;
-          showOverlay('GAME OVER', `PONTUAÇÃO: ${score}`, MP.active ? 'ESC PARA SAIR' : 'ENTER / A PARA REINICIAR');
+          showOverlay('GAME OVER', `PONTUA��O: ${score}`, MP.active ? 'ESC PARA SAIR' : 'ENTER / A PARA REINICIAR');
         } else {
           invincTimer = 120;
           state       = GS.DEAD;
@@ -396,7 +396,7 @@ function checkCollisions() {
     }
   }
 
-  // Nave 2 (guest) x inimigos — só host verifica
+  // Nave 2 (guest) x inimigos � s� host verifica
   if (MP.active && MP.role === 'host' && MP.ship2 && MP.invincTimer2 <= 0) {
     for (let ei = enemies.length - 1; ei >= 0; ei--) {
       const e = enemies[ei];
@@ -408,7 +408,7 @@ function checkCollisions() {
         if (lives <= 0) {
           state = GS.GAMEOVER;
           if (score > hiScore) hiScore = score;
-          showOverlay('GAME OVER', `PONTUAÇÃO: ${score}`, 'ESC PARA SAIR');
+          showOverlay('GAME OVER', `PONTUA��O: ${score}`, 'ESC PARA SAIR');
         } else {
           MP.invincTimer2 = 120;
         }
@@ -419,7 +419,7 @@ function checkCollisions() {
   if (MP.invincTimer2 > 0) MP.invincTimer2--;
 }
 
-// ── UI ─────────────────────────────────────────────────────────
+// -- UI ---------------------------------------------------------
 function updateScoreUI() {
   document.getElementById('score-value').textContent = score;
 }
@@ -429,7 +429,7 @@ function updateLivesUI() {
   for (let i = 0; i < lives; i++) {
     const ic      = document.createElement('span');
     ic.className  = 'life-icon';
-    ic.textContent = '▲';
+    ic.textContent = '?';
     el.appendChild(ic);
   }
 }
@@ -441,7 +441,7 @@ function showOverlay(title, sub = '', hint = '', showMenu = false) {
   const menu = document.getElementById('overlay-menu');
   showMenu ? menu.classList.remove('hidden') : menu.classList.add('hidden');
   if (showMenu) {
-    // garantir foco no botão atual (teclado/gamepad)
+    // garantir foco no bot�o atual (teclado/gamepad)
     updateTitleMenuFocus();
   }
 }
@@ -449,7 +449,7 @@ function hideOverlay() {
   document.getElementById('overlay').classList.add('hidden');
 }
 
-// ── Render Loop ────────────────────────────────────────────────
+// -- Render Loop ------------------------------------------------
 function draw() {
   ctx.fillStyle = PAL.bg;
   ctx.fillRect(0, 0, W, H);
@@ -469,7 +469,7 @@ function draw() {
     if (!blink2) drawShipShape(MP.ship2, PAL.ship2);
   }
 
-  // Indicador de nível (pisca suavemente)
+  // Indicador de n�vel (pisca suavemente)
   if (frameNum % (spawnRate * 10) < 80) {
     ctx.fillStyle = 'rgba(93,228,255,0.3)';
     ctx.font      = '8px VT323, monospace';
@@ -523,7 +523,7 @@ function loop() {
   requestAnimationFrame(loop);
 }
 
-// ── Game Management ────────────────────────────────────────────
+// -- Game Management --------------------------------------------
 function startGame(isMP = false) {
   MP.active   = isMP;
   score       = 0;
@@ -534,7 +534,7 @@ function startGame(isMP = false) {
   bullets     = [];
   enemies     = [];
   particles   = [];
-  ship        = createShip(isMP ? W * 0.33 : W / 2); // Host fica à esquerda
+  ship        = createShip(isMP ? W * 0.33 : W / 2); // Host fica � esquerda
   invincTimer = 60;
   state       = GS.PLAYING;
   hideOverlay();
@@ -544,7 +544,7 @@ function startGame(isMP = false) {
     const hudEl = document.getElementById('mp-hud');
     const tagEl = document.getElementById('mp-player-tag');
     if (hudEl) hudEl.classList.remove('hidden');
-    if (tagEl) tagEl.textContent = '🏠 P1-HOST';
+    if (tagEl) tagEl.textContent = '?? P1-HOST';
   } else {
     const hudEl = document.getElementById('mp-hud');
     if (hudEl) hudEl.classList.add('hidden');
@@ -561,7 +561,7 @@ function startGameGuest() {
   bullets     = [];
   enemies     = [];
   particles   = [];
-  ship        = createShip(W * 0.67); // Guest fica à direita
+  ship        = createShip(W * 0.67); // Guest fica � direita
   invincTimer = 60;
   state       = GS.PLAYING;
   hideOverlay();
@@ -570,10 +570,10 @@ function startGameGuest() {
   const hudEl = document.getElementById('mp-hud');
   const tagEl = document.getElementById('mp-player-tag');
   if (hudEl) hudEl.classList.remove('hidden');
-  if (tagEl) tagEl.textContent = '🔗 P2-GUEST';
+  if (tagEl) tagEl.textContent = '?? P2-GUEST';
 }
 
-// ── Teclado ────────────────────────────────────────────────────
+// -- Teclado ----------------------------------------------------
 document.addEventListener('keydown', e => {
   keys[e.key] = true;
 
@@ -613,7 +613,7 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('keyup', e => { keys[e.key] = false; });
 
-// ── Gamepad ─────────────────────────────────────────────────────
+// -- Gamepad -----------------------------------------------------
 let comboTriggered = false;
 
 function pollGamepad() {
@@ -694,9 +694,9 @@ function pollGamepad() {
 }
 setInterval(pollGamepad, 16);
 
-// ═══════════════════════════════════════════════════════════════
-//  MULTIPLAYER — WebRTC P2P (sem servidor)
-// ═══════════════════════════════════════════════════════════════
+// ---------------------------------------------------------------
+//  MULTIPLAYER � WebRTC P2P (sem servidor)
+// ---------------------------------------------------------------
 
 const ICE_CFG = {
   iceServers: [
@@ -706,12 +706,12 @@ const ICE_CFG = {
   ],
 };
 
-/** Serializa um RTCSessionDescription para base64 (compartilhável) */
+/** Serializa um RTCSessionDescription para base64 (compartilh�vel) */
 function mpEncode(sdp) {
   return btoa(JSON.stringify(sdp));
 }
 
-/** Desserializa o código base64 de volta para objeto */
+/** Desserializa o c�digo base64 de volta para objeto */
 function mpDecode(str) {
   try {
     return JSON.parse(atob(str.trim().replace(/\s+/g, '')));
@@ -722,7 +722,7 @@ function mpDecode(str) {
 
 /**
  * Aguarda o ICE gathering terminar (ou timeout de 10s).
- * Garante que o código gerado inclua todos os candidatos.
+ * Garante que o c�digo gerado inclua todos os candidatos.
  */
 function mpWaitICE(pc) {
   return new Promise(resolve => {
@@ -734,7 +734,7 @@ function mpWaitICE(pc) {
       }
     };
     pc.addEventListener('icegatheringstatechange', check);
-    setTimeout(resolve, 10000); // fallback: não trava para sempre
+    setTimeout(resolve, 10000); // fallback: n�o trava para sempre
   });
 }
 
@@ -742,7 +742,7 @@ function mpWaitICE(pc) {
 function mpSetupChannel(dc) {
   dc.onopen = () => {
     MP.connected = true;
-    mpSetStatus('CONECTADO ✓');
+    mpSetStatus('CONECTADO ?');
     setTimeout(() => {
       hideMPOverlays();
       if (MP.role === 'host') {
@@ -757,7 +757,7 @@ function mpSetupChannel(dc) {
     mpSetStatus('DESCONECTADO');
   };
   dc.onerror = () => {
-    mpSetStatus('ERRO DE CONEXÃO');
+    mpSetStatus('ERRO DE CONEX�O');
   };
   dc.onmessage = (ev) => {
     try { mpOnMessage(JSON.parse(ev.data)); } catch (_) {}
@@ -777,7 +777,7 @@ function mpOnMessage(msg) {
 
     // Balas do host (substitui balas locais de origem host)
     if (msg.bl !== undefined) {
-      const myBullets = bullets.filter(b => b.fromGuest); // mantém balas locais do guest
+      const myBullets = bullets.filter(b => b.fromGuest); // mant�m balas locais do guest
       bullets = msg.bl.concat(myBullets);
     }
 
@@ -786,17 +786,17 @@ function mpOnMessage(msg) {
       state = msg.st;
       if (state === GS.GAMEOVER) {
         if (score > hiScore) hiScore = score;
-        showOverlay('GAME OVER', `PONTUAÇÃO: ${score}`, 'ESC PARA SAIR');
+        showOverlay('GAME OVER', `PONTUA��O: ${score}`, 'ESC PARA SAIR');
       }
       if (state === GS.DEAD) {
         deadTimer = 60;
       }
     }
   } else if (MP.role === 'host') {
-    // Recebe posição e eventos do guest
+    // Recebe posi��o e eventos do guest
     if (msg.s2 !== undefined) MP.ship2 = msg.s2;
     if (msg.sh && MP.ship2) {
-      // Guest atirou — host cria bala autoritativa
+      // Guest atirou � host cria bala autoritativa
       bullets.push({ x: MP.ship2.x, y: MP.ship2.y - 4, vy: -4.5, w: 2, h: 5, fromGuest: true });
       spawnParticle(MP.ship2.x, MP.ship2.y - 4, PAL.bullet2, 3, -4, 0.3);
     }
@@ -828,7 +828,7 @@ function mpSendState() {
         s2: ship ? { x: ship.x, y: ship.y } : null,
         sh: MP.guestShot, // flag: atirou neste ciclo de envio
       }));
-      MP.guestShot = false; // reset após enviar
+      MP.guestShot = false; // reset ap�s enviar
     }
   } catch (_) {}
 }
@@ -843,9 +843,9 @@ function hideMPOverlays() {
     .forEach(id => document.getElementById(id)?.classList.add('hidden'));
 }
 
-// ── Funções chamadas pelos botões HTML ──────────────────────────
+// -- Fun��es chamadas pelos bot�es HTML --------------------------
 
-/** Jogar solo — reseta MP e começa */
+/** Jogar solo � reseta MP e come�a */
 function menuSolo() {
   MP.active = false;
   MP.role   = null;
@@ -871,10 +871,10 @@ function cancelDisclaimer() {
   updateTitleMenuFocus();
 }
 
-/** Fechar overlays MP e voltar ao título */
+/** Fechar overlays MP e voltar ao t�tulo */
 function cancelMP() {
   hideMPOverlays();
-  // Fecha conexão existente
+  // Fecha conex�o existente
   if (MP.pc) {
     try { MP.pc.close(); } catch (_) {}
     MP.pc        = null;
@@ -887,9 +887,9 @@ function cancelMP() {
   showOverlay('STAR BLASTER', 'CARTRIDGE-8 DEMO', '', true);
 }
 
-// ── Fluxo HOST ──────────────────────────────────────────────────
+// -- Fluxo HOST --------------------------------------------------
 
-/** Inicia criação da sala (HOST) */
+/** Inicia cria��o da sala (HOST) */
 async function startHost() {
   document.getElementById('mp-mode-overlay').classList.add('hidden');
   document.getElementById('mp-host-overlay').classList.remove('hidden');
@@ -907,13 +907,13 @@ async function startHost() {
     document.getElementById('host-step1-actions').style.display = 'flex';
     updateOverlayFocus('mp-host-overlay');
   } catch (err) {
-    document.getElementById('host-generating').textContent = '❌ Erro ao criar sala. Tente novamente.';
+    document.getElementById('host-generating').textContent = '? Erro ao criar sala. Tente novamente.';
     document.getElementById('host-generating').classList.remove('blink');
     console.error('mpCreateHost error:', err);
   }
 }
 
-/** Cria RTCPeerConnection como host e retorna o código de convite */
+/** Cria RTCPeerConnection como host e retorna o c�digo de convite */
 async function mpCreateHost() {
   MP.role = 'host';
   MP.pc   = new RTCPeerConnection(ICE_CFG);
@@ -922,7 +922,7 @@ async function mpCreateHost() {
 
   const offer = await MP.pc.createOffer();
   await MP.pc.setLocalDescription(offer);
-  await mpWaitICE(MP.pc);     // aguarda ICE candidates antes de gerar o código
+  await mpWaitICE(MP.pc);     // aguarda ICE candidates antes de gerar o c�digo
 
   return mpEncode(MP.pc.localDescription);
 }
@@ -931,8 +931,8 @@ function copyHostOffer() {
   const code = document.getElementById('host-offer-code').value;
   navigator.clipboard.writeText(code).then(() => {
     const btn = document.getElementById('btn-copy-offer');
-    btn.textContent = '✓ COPIADO!';
-    setTimeout(() => { btn.textContent = '📋 COPIAR CÓDIGO'; }, 2000);
+    btn.textContent = '? COPIADO!';
+    setTimeout(() => { btn.textContent = '?? COPIAR C�DIGO'; }, 2000);
   }).catch(() => {
     // Fallback para navegadores sem clipboard API
     document.getElementById('host-offer-code').select();
@@ -950,7 +950,7 @@ function goHostStep2() {
   updateOverlayFocus('mp-host-overlay');
 }
 
-/** Host recebe o código de resposta do guest e completa a conexão */
+/** Host recebe o c�digo de resposta do guest e completa a conex�o */
 async function hostConnect() {
   const raw    = document.getElementById('host-answer-input').value.trim();
   const errEl  = document.getElementById('host-error');
@@ -967,7 +967,7 @@ async function hostConnect() {
   }
   try {
     await MP.pc.setRemoteDescription(new RTCSessionDescription(answer));
-    // DataChannel.onopen dispara quando conectar → startGame() é chamado lá
+    // DataChannel.onopen dispara quando conectar ? startGame() � chamado l�
   } catch (err) {
     connEl.classList.add('hidden');
     errEl.classList.remove('hidden');
@@ -975,7 +975,7 @@ async function hostConnect() {
   }
 }
 
-// ── Fluxo GUEST ─────────────────────────────────────────────────
+// -- Fluxo GUEST -------------------------------------------------
 
 /** Exibe a tela de entrar na sala (GUEST) */
 function startGuest() {
@@ -990,7 +990,7 @@ function startGuest() {
   updateOverlayFocus('mp-guest-overlay');
 }
 
-/** Guest lê o código de convite e gera o código de resposta */
+/** Guest l� o c�digo de convite e gera o c�digo de resposta */
 async function guestGenAnswer() {
   const raw    = document.getElementById('guest-offer-input').value.trim();
   const errEl  = document.getElementById('guest-error');
@@ -1019,7 +1019,7 @@ async function guestGenAnswer() {
   }
 }
 
-/** Cria RTCPeerConnection como guest e retorna o código de resposta */
+/** Cria RTCPeerConnection como guest e retorna o c�digo de resposta */
 async function mpCreateGuest(offerCode) {
   const offer = mpDecode(offerCode);
   if (!offer) return null;
@@ -1036,7 +1036,7 @@ async function mpCreateGuest(offerCode) {
   await MP.pc.setRemoteDescription(new RTCSessionDescription(offer));
   const answer = await MP.pc.createAnswer();
   await MP.pc.setLocalDescription(answer);
-  await mpWaitICE(MP.pc);    // aguarda ICE candidates antes de gerar o código
+  await mpWaitICE(MP.pc);    // aguarda ICE candidates antes de gerar o c�digo
 
   return mpEncode(MP.pc.localDescription);
 }
@@ -1045,15 +1045,15 @@ function copyGuestAnswer() {
   const code = document.getElementById('guest-answer-code').value;
   navigator.clipboard.writeText(code).then(() => {
     const btn = document.getElementById('btn-copy-answer');
-    btn.textContent = '✓ COPIADO!';
-    setTimeout(() => { btn.textContent = '📋 COPIAR RESPOSTA'; }, 2000);
+    btn.textContent = '? COPIADO!';
+    setTimeout(() => { btn.textContent = '?? COPIAR RESPOSTA'; }, 2000);
   }).catch(() => {
     document.getElementById('guest-answer-code').select();
     document.execCommand('copy');
   });
 }
 
-// ── Init ────────────────────────────────────────────────────────
+// -- Init --------------------------------------------------------
 initStars();
 updateLivesUI();
 showOverlay('STAR BLASTER', 'CARTRIDGE-8 DEMO', '', true);

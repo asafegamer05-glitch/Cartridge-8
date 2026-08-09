@@ -40,18 +40,18 @@
     <div id="info">
         <div id="levelDisplay">FASE 1</div>
         <div id="scoreDisplay">Moedas: 0 / 5</div>
-        <div class="controls">🎮 Gamepad: D-Pad/analógico para mover, A para pular | ⌨️ Teclado: Setas + Espaço</div>
+        <div class="controls">?? Gamepad: D-Pad/anal�gico para mover, A para pular | ?? Teclado: Setas + Espa�o</div>
     </div>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
-        // Configurações do canvas
+        // Configura��es do canvas
         canvas.width = 800;
         canvas.height = 400;
         
-        // Variáveis do jogo
+        // Vari�veis do jogo
         let gameState = 'playing'; // 'playing', 'win', 'gameover'
         let currentLevel = 1;
         let totalCoins = 0;
@@ -83,13 +83,13 @@
         const keys = {};
         let gamepadConnected = false;
         
-        // Inicializar níveis
+        // Inicializar n�veis
         function loadLevel(level) {
             platforms = [];
             enemies = [];
             coins = [];
             
-            // Plataformas base (chão)
+            // Plataformas base (ch�o)
             platforms.push({ x: 0, y: 370, width: 800, height: 30, color: '#8B4513' });
             
             switch(level) {
@@ -112,7 +112,7 @@
                     player.y = 300;
                     break;
                     
-                case 2: // Fase 2 - Mais difícil
+                case 2: // Fase 2 - Mais dif�cil
                     platforms.push({ x: 150, y: 320, width: 80, height: 15, color: '#654321' });
                     platforms.push({ x: 300, y: 270, width: 80, height: 15, color: '#654321' });
                     platforms.push({ x: 450, y: 220, width: 80, height: 15, color: '#654321' });
@@ -207,7 +207,7 @@
         
         function update() {
             if (gameState !== 'playing') {
-                // Reiniciar com Enter ou botão A do gamepad
+                // Reiniciar com Enter ou bot�o A do gamepad
                 const gamepad = getGamepadInput();
                 if (keys['Enter'] || (gamepad && gamepad.buttons[0].pressed)) {
                     if (gameState === 'gameover') {
@@ -220,7 +220,7 @@
                             loadLevel(currentLevel);
                             gameState = 'playing';
                         } else {
-                            // Vitória final - reiniciar jogo
+                            // Vit�ria final - reiniciar jogo
                             currentLevel = 1;
                             loadLevel(1);
                             gameState = 'playing';
@@ -238,12 +238,12 @@
             // Input do gamepad
             const gamepad = getGamepadInput();
             if (gamepad) {
-                // D-pad ou analógico esquerdo
+                // D-pad ou anal�gico esquerdo
                 if (gamepad.axes[0] < -0.5) moveLeft = true;
                 if (gamepad.axes[0] > 0.5) moveRight = true;
                 if (gamepad.buttons[14]?.pressed) moveLeft = true; // D-pad esquerda
                 if (gamepad.buttons[15]?.pressed) moveRight = true; // D-pad direita
-                if (gamepad.buttons[0]?.pressed) jump = true; // Botão A
+                if (gamepad.buttons[0]?.pressed) jump = true; // Bot�o A
             }
             
             // Movimento horizontal
@@ -267,7 +267,7 @@
             player.vy += player.gravity;
             player.y += player.vy;
             
-            // Verificar colisão com plataformas
+            // Verificar colis�o com plataformas
             player.grounded = false;
             for (let plat of platforms) {
                 if (player.x < plat.x + plat.width &&
@@ -275,13 +275,13 @@
                     player.y < plat.y + plat.height &&
                     player.y + player.height > plat.y) {
                     
-                    // Colisão por cima
+                    // Colis�o por cima
                     if (player.vy > 0 && player.y + player.height - player.vy <= plat.y) {
                         player.y = plat.y - player.height;
                         player.vy = 0;
                         player.grounded = true;
                     }
-                    // Colisão por baixo
+                    // Colis�o por baixo
                     else if (player.vy < 0 && player.y - player.vy >= plat.y + plat.height) {
                         player.y = plat.y + plat.height;
                         player.vy = 0;
@@ -289,7 +289,7 @@
                 }
             }
             
-            // Movimento horizontal com colisão
+            // Movimento horizontal com colis�o
             player.x += player.vx;
             for (let plat of platforms) {
                 if (player.x < plat.x + plat.width &&
@@ -319,7 +319,7 @@
             for (let enemy of enemies) {
                 enemy.x += enemy.vx;
                 
-                // Verificar colisão com plataformas para inimigos
+                // Verificar colis�o com plataformas para inimigos
                 let enemyGrounded = false;
                 for (let plat of platforms) {
                     if (enemy.x < plat.x + plat.width &&
@@ -330,12 +330,12 @@
                     }
                 }
                 
-                // Mudar direção nos limites ou bordas de plataforma
+                // Mudar dire��o nos limites ou bordas de plataforma
                 if (enemy.x <= 0 || enemy.x >= canvas.width - enemy.width || !enemyGrounded) {
                     enemy.vx = -enemy.vx;
                 }
                 
-                // Colisão com jogador
+                // Colis�o com jogador
                 if (player.x < enemy.x + enemy.width &&
                     player.x + player.width > enemy.x &&
                     player.y < enemy.y + enemy.height &&
@@ -383,7 +383,7 @@
         }
         
         function draw() {
-            // Fundo com gradiente (céu)
+            // Fundo com gradiente (c�u)
             const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
             gradient.addColorStop(0, '#87CEEB');
             gradient.addColorStop(1, '#98FB98');
@@ -461,7 +461,7 @@
             ctx.fillStyle = player.color;
             ctx.fillRect(player.x, player.y, player.width, player.height);
             
-            // Chapéu
+            // Chap�u
             ctx.fillStyle = '#c0392b';
             ctx.fillRect(player.x - 2, player.y - 8, player.width + 4, 10);
             
@@ -489,7 +489,7 @@
                 ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 20);
                 ctx.fillStyle = 'white';
                 ctx.font = '20px Arial';
-                ctx.fillText('Pressione ENTER ou 🎮 A para tentar novamente', canvas.width / 2, canvas.height / 2 + 30);
+                ctx.fillText('Pressione ENTER ou ?? A para tentar novamente', canvas.width / 2, canvas.height / 2 + 30);
             } else if (gameState === 'win') {
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -500,12 +500,12 @@
                     ctx.fillText(`FASE ${currentLevel} COMPLETA!`, canvas.width / 2, canvas.height / 2 - 20);
                     ctx.fillStyle = 'white';
                     ctx.font = '20px Arial';
-                    ctx.fillText('Pressione ENTER ou 🎮 A para próxima fase', canvas.width / 2, canvas.height / 2 + 30);
+                    ctx.fillText('Pressione ENTER ou ?? A para pr�xima fase', canvas.width / 2, canvas.height / 2 + 30);
                 } else {
-                    ctx.fillText('🏆 VITÓRIA FINAL! 🏆', canvas.width / 2, canvas.height / 2 - 20);
+                    ctx.fillText('?? VIT�RIA FINAL! ??', canvas.width / 2, canvas.height / 2 - 20);
                     ctx.fillStyle = 'white';
                     ctx.font = '20px Arial';
-                    ctx.fillText('Pressione ENTER ou 🎮 A para jogar novamente', canvas.width / 2, canvas.height / 2 + 30);
+                    ctx.fillText('Pressione ENTER ou ?? A para jogar novamente', canvas.width / 2, canvas.height / 2 + 30);
                 }
             }
         }

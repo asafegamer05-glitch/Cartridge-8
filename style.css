@@ -1,5 +1,5 @@
-﻿/* ============================================
-   CARTRIDGE-8 â€” Stylesheet v1.3
+/* ============================================
+   CARTRIDGE-8 — Stylesheet v1.3
    Console OS v1.3, 3D Cartridge Rack & Retro Apps
    ============================================ */
 
@@ -33,7 +33,7 @@
 button { background: none; border: none; cursor: pointer; font-family: var(--font-main); color: inherit; }
 ul { list-style: none; }
 
-/* â”€â”€ Body â”€â”€ */
+/* ── Body ── */
 body {
   background: var(--bg-body);
   font-family: var(--font-main);
@@ -145,7 +145,7 @@ body {
 }
 
 /* ============================================
-   EFEITOS E OVERLAYS CRT â€” DENTRO DE #SCREEN
+   EFEITOS E OVERLAYS CRT — DENTRO DE #SCREEN
    ============================================ */
 #crt-noise {
   position: absolute;
@@ -1234,7 +1234,7 @@ body {
 }
 
 /* ============================================
-   OPÃ‡Ã•ES
+   OPÇÕES
    ============================================ */
 #options-list { display:flex; flex-direction:column; gap:1px; flex:1; }
 .option-item {
@@ -1339,7 +1339,7 @@ input[type="range"]::-moz-range-thumb { width:11px; height:11px; border-radius:5
 .crt-off #screen-wrapper { box-shadow: none; }
 
 /* ============================================
-   PERFIS â€” SeleÃ§Ã£o, Editor, Hardcore
+   PERFIS — Seleção, Editor, Hardcore
    ============================================ */
 .menu-profile-badge {
   text-align: center;
@@ -1674,7 +1674,7 @@ body.profile-mobile-input .profile-mobile-kb { display: block !important; }
 
 .library-item.locked { opacity: 0.65; }
 .library-item.locked .library-cover::after {
-  content: 'ðŸ”’';
+  content: '🔒';
   position: absolute;
   inset: 0;
   display: flex;
@@ -1714,7 +1714,7 @@ body.profile-mobile-input .profile-mobile-kb { display: block !important; }
   pointer-events: none;
 }
 .c8-cartridge-3d.locked::before {
-  content: 'ðŸ”’';
+  content: '🔒';
   position: absolute;
   top: 50%;
   left: 50%;

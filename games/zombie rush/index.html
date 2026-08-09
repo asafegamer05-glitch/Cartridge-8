@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Zombie Rush - Sobrevivência na Floresta</title>
+<title>Zombie Rush - Sobreviv�ncia na Floresta</title>
 <style>
   html, body {
     margin: 0; padding: 0; width: 100%; height: 100%;
@@ -22,7 +22,7 @@
 
   let W = window.innerWidth, H = window.innerHeight;
 
-  // ---------- Áreas e Tamanho do Mapa ----------
+  // ---------- �reas e Tamanho do Mapa ----------
   let currentArea = 'home'; // 'home' | 'gas_station' | 'military_base'
   let mapW = W, mapH = H;
   let cameraX = 0, cameraY = 0;
@@ -31,7 +31,7 @@
     if (currentArea === 'home') {
       mapW = W; mapH = H;
     } else {
-      mapW = W * 2; mapH = H * 2; // 4x a área total!
+      mapW = W * 2; mapH = H * 2; // 4x a �rea total!
     }
   }
 
@@ -49,7 +49,7 @@
 
   const MODES = [
     { key: 'normal', name: 'MODO NORMAL', days: 3, desc: 'Sobreviva por 3 dias e noites na floresta.' },
-    { key: 'hard',   name: 'MODO DÍFICIL', days: 10, desc: 'Desafio extremo! 10 dias com zumbis mais agressivos.' },
+    { key: 'hard',   name: 'MODO D�FICIL', days: 10, desc: 'Desafio extremo! 10 dias com zumbis mais agressivos.' },
     { key: 'endless',name: 'MODO INFINITO', days: Infinity, desc: 'Sem limites! Sobreviva quantas noites conseguir.' },
   ];
 
@@ -97,7 +97,7 @@
     speed: 4.0,
     foodCount: 3,
     hungerLevel: 100,
-    hungerDecayPerSec: 0.45 * 4, // 4x mais rápido!
+    hungerDecayPerSec: 0.45 * 4, // 4x mais r�pido!
     starveDamagePerSec: 3,
     lowHungerDamagePerSec: 0.7,
     aimAngle: 0,
@@ -106,12 +106,12 @@
   const generator = {
     x: 0, y: 0, radius: 24,
     health: 100, maxHealth: 100,
-    decayPerSec: 1.2 * 4 // 4x mais rápido!
+    decayPerSec: 1.2 * 4 // 4x mais r�pido!
   };
 
   const WEAPONS = [
-    { name: 'Pistola Caçadora', cooldown: 18, damage: 34, maxAmmo: 8,  cost: 0 },
-    { name: 'SMG Tática',       cooldown: 8,  damage: 38, maxAmmo: 24, cost: 250 },
+    { name: 'Pistola Ca�adora', cooldown: 18, damage: 34, maxAmmo: 8,  cost: 0 },
+    { name: 'SMG T�tica',       cooldown: 8,  damage: 38, maxAmmo: 24, cost: 250 },
     { name: 'Rifle de Assalto', cooldown: 4,  damage: 48, maxAmmo: 36, cost: 500 },
   ];
   let weaponTier = 0;
@@ -209,11 +209,11 @@
         { x: bx, y: by + bh - WT, w: bw/2 - doorG/2, h: WT }, // Sul Esquerda
         { x: bx + bw/2 + doorG/2, y: by + bh - WT, w: bw/2 - doorG/2, h: WT }, // Sul Direita (Porta)
 
-        // Divisória Interna Vertical
+        // Divis�ria Interna Vertical
         { x: bx + 260, y: by, w: WT, h: 90 },
         { x: bx + 260, y: by + 150, w: WT, h: bh - 150 },
 
-        // Divisória Interna Horizontal
+        // Divis�ria Interna Horizontal
         { x: bx + 260, y: by + 150 - WT/2, w: 80, h: WT },
         { x: bx + 390, y: by + 150 - WT/2, w: 50, h: WT },
       ];
@@ -238,10 +238,10 @@
         { x: bx + 330, y: by + 130, w: WT, h: 100 },
         { x: bx + 330, y: by + 280, w: WT, h: bh - 280 },
 
-        // Divisória Horizontal Esquerda
+        // Divis�ria Horizontal Esquerda
         { x: bx, y: by + 190 - WT/2, w: 210, h: WT },
 
-        // Divisória Horizontal Direita
+        // Divis�ria Horizontal Direita
         { x: bx + 330, y: by + 190 - WT/2, w: 230, h: WT },
       ];
     }
@@ -275,7 +275,7 @@
     }
   }
 
-  // ---------- Desbloqueio das Áreas ----------
+  // ---------- Desbloqueio das �reas ----------
   function isGasStationUnlocked() {
     if (gameMode === 'hard') return dayIndex >= 3;
     return dayIndex >= 2; // Normal e Endless
@@ -342,7 +342,7 @@
 
   function spawnFood() {
     if (foods.length >= MAX_FOOD_ITEMS) return;
-    // Se estiver na casa e o gerador estiver 0 HP, não spawna comida na casa!
+    // Se estiver na casa e o gerador estiver 0 HP, n�o spawna comida na casa!
     if (currentArea === 'home' && generator.health <= 0) return;
 
     let fx, fy, attempts = 0;
@@ -381,7 +381,7 @@
   function damageGenerator(amount) {
     if (gameState !== 'playing' || currentArea !== 'home') return;
     generator.health = Math.max(0, generator.health - amount);
-    // Gerador zerado NÃO dá game over mais! Apenas desativa loja e comida da casa.
+    // Gerador zerado N�O d� game over mais! Apenas desativa loja e comida da casa.
   }
 
   function collectFood(f) {
@@ -408,12 +408,12 @@
     const nextWeapon = WEAPONS[weaponTier + 1];
     return [
       { key: 'turret',     label: `Torreta de Guarda`,              price: TURRET_COST, available: turrets.length < 4 },
-      { key: 'weapon',     label: nextWeapon ? `Arma: ${nextWeapon.name}` : 'Arma Nível Máximo', price: nextWeapon ? nextWeapon.cost : null, available: !!nextWeapon },
-      { key: 'food',       label: 'Provisões (+1 Comida)',          price: 50,  available: true },
-      { key: 'heal',       label: 'Poção de Cura (+40 HP)',          price: 40,  available: player.health < player.maxHealth },
-      { key: 'maxhealth',  label: 'Aumento Vida Máxima (+20 Max HP)',price: 100, available: player.maxHealth < 200 },
+      { key: 'weapon',     label: nextWeapon ? `Arma: ${nextWeapon.name}` : 'Arma N�vel M�ximo', price: nextWeapon ? nextWeapon.cost : null, available: !!nextWeapon },
+      { key: 'food',       label: 'Provis�es (+1 Comida)',          price: 50,  available: true },
+      { key: 'heal',       label: 'Po��o de Cura (+40 HP)',          price: 40,  available: player.health < player.maxHealth },
+      { key: 'maxhealth',  label: 'Aumento Vida M�xima (+20 Max HP)',price: 100, available: player.maxHealth < 200 },
       { key: 'speed',      label: 'Botas de Velocidade (+0.8 Speed)',price: 120, available: player.speed < 6.5 },
-      { key: 'fuel',       label: 'Galão de Combustível (+50 Gerador HP)', price: 60, available: generator.health < generator.maxHealth },
+      { key: 'fuel',       label: 'Gal�o de Combust�vel (+50 Gerador HP)', price: 60, available: generator.health < generator.maxHealth },
     ];
   }
 
@@ -427,14 +427,14 @@
   function purchaseSelected() {
     const items = getShopItems();
     const item = items[shopIndex];
-    if (!item || !item.available) { flashMessage('Indisponível'); return; }
+    if (!item || !item.available) { flashMessage('Indispon�vel'); return; }
     if (currency < item.price) { flashMessage('Moedas insuficientes'); return; }
 
     if (item.key === 'turret') {
       const slots = getTurretSlots();
       const occupied = turrets.map(t => `${t.x},${t.y}`);
       const freeSlot = slots.find(s => !occupied.includes(`${s.x},${s.y}`));
-      if (!freeSlot) { flashMessage('Sem espaço para torreta'); return; }
+      if (!freeSlot) { flashMessage('Sem espa�o para torreta'); return; }
       currency -= item.price;
       turrets.push({ x: freeSlot.x, y: freeSlot.y, hp: TURRET_MAX_HP, cooldown: 0 });
       flashMessage('Torreta instalada!');
@@ -445,7 +445,7 @@
     } else if (item.key === 'food') {
       currency -= item.price;
       player.foodCount++;
-      flashMessage('Provisão comprada!');
+      flashMessage('Provis�o comprada!');
     } else if (item.key === 'heal') {
       currency -= item.price;
       player.health = Math.min(player.maxHealth, player.health + 40);
@@ -454,7 +454,7 @@
       currency -= item.price;
       player.maxHealth += 20;
       player.health += 20;
-      flashMessage('Vida Máxima Aumentada!');
+      flashMessage('Vida M�xima Aumentada!');
     } else if (item.key === 'speed') {
       currency -= item.price;
       player.speed += 0.8;
@@ -488,7 +488,7 @@
     enemyBullets = [];
     foods = [];
 
-    // Reposiciona o jogador na área nova
+    // Reposiciona o jogador na �rea nova
     if (newArea === 'home') {
       player.x = house.x + house.w/2;
       player.y = house.y + house.h - 55;
@@ -609,7 +609,7 @@
   function update() {
     updateGamepad();
 
-    /* ── MENU PRINCIPAL ── */
+    /* -- MENU PRINCIPAL -- */
     if (gameState === 'menu') {
       if ((gamepadAxes[1] < -0.5 || keys.w) && shopNavCooldown <= 0) {
         menuIndex = (menuIndex - 1 + MODES.length) % MODES.length;
@@ -625,7 +625,7 @@
       return;
     }
 
-    /* ── GAMEOVER / WIN ── */
+    /* -- GAMEOVER / WIN -- */
     if (gameState === 'gameover' || gameState === 'win') {
       if (gpJustPressed(0) || gpJustPressed(9) || keys.enter || keys[' ']) {
         gameState = 'menu';
@@ -633,7 +633,7 @@
       return;
     }
 
-    /* ── MENU DE VIAGEM (CAMINHONETE) ── */
+    /* -- MENU DE VIAGEM (CAMINHONETE) -- */
     if (travelMenuOpen) {
       const dests = getTravelDestinations();
       if ((gamepadAxes[1] < -0.5 || keys.w) && shopNavCooldown <= 0) {
@@ -646,13 +646,13 @@
       if (gpJustPressed(0) || keys.enter || keys[' ']) {
         const selected = dests[travelIndex];
         if (selected.unlocked) switchArea(selected.key);
-        else flashMessage('Área Bloqueada!');
+        else flashMessage('�rea Bloqueada!');
       }
-      if (gpJustPressed(1) || keys.r) travelMenuOpen = false; // Botão B ou R fecha
+      if (gpJustPressed(1) || keys.r) travelMenuOpen = false; // Bot�o B ou R fecha
       return;
     }
 
-    /* ── PAINEL ADMIN (F2) ── */
+    /* -- PAINEL ADMIN (F2) -- */
     if (adminMenuOpen) {
       const optsCount = 6;
       if ((gamepadAxes[1] < -0.5 || keys.w) && shopNavCooldown <= 0) {
@@ -677,7 +677,7 @@
       return;
     }
 
-    /* ── LOJA ── */
+    /* -- LOJA -- */
     if (shopOpen) {
       const items = getShopItems();
       if ((gamepadAxes[1] < -0.5 || keys.w) && shopNavCooldown <= 0) { shopIndex = (shopIndex - 1 + items.length) % items.length; shopNavCooldown = 12; }
@@ -688,7 +688,7 @@
       return;
     }
 
-    /* ── PLAYING ── */
+    /* -- PLAYING -- */
     if (gpJustPressed(1)) toggleShop();
 
     let mx = 0, my = 0;
@@ -703,7 +703,7 @@
       moveWithWallCollision(player, (mx/len)*player.speed, (my/len)*player.speed);
     }
 
-    // Atualiza Câmera para seguir o jogador nos mapas 4x
+    // Atualiza C�mera para seguir o jogador nos mapas 4x
     cameraX = clamp(player.x - W/2, 0, mapW - W);
     cameraY = clamp(player.y - H/2, 0, mapH - H);
 
@@ -724,7 +724,7 @@
     if (keys.e || gamepadButtons[3]) attemptRepair();
     if (keys.f || gpJustPressed(8)) skipDay(); // Skip dia (F ou SELECT)
 
-    // Interação com Caminhonete
+    // Intera��o com Caminhonete
     if (phase === 'day') {
       const truck = getTruckPos();
       if (distance(player.x, player.y, truck.x, truck.y) < 65) {
@@ -741,7 +741,7 @@
     phaseTimer -= 1/60;
     if (phaseTimer <= 0) { phaseTimer = 0; advancePhase(); }
 
-    // Fome e Gerador desce 4x mais rápido!
+    // Fome e Gerador desce 4x mais r�pido!
     player.hungerLevel -= player.hungerDecayPerSec / 60;
     if (player.hungerLevel <= 0) { player.hungerLevel = 0; damagePlayer(player.starveDamagePerSec/60); }
     else if (player.hungerLevel < 30) { damagePlayer(player.lowHungerDamagePerSec/60); }
@@ -765,7 +765,7 @@
     foodSpawnTimer--;
     if (foodSpawnTimer <= 0 && foods.length < MAX_FOOD_ITEMS) { spawnFood(); foodSpawnTimer = FOOD_SPAWN_DELAY + Math.floor(Math.random()*100); }
 
-    // Atualização Zumbis
+    // Atualiza��o Zumbis
     for (let z of zombies) {
       const dx = player.x - z.x, dy = player.y - z.y;
       const dist = Math.sqrt(dx*dx + dy*dy) || 1;
@@ -846,7 +846,7 @@
     if (shopMessageTimer > 0) shopMessageTimer--;
   }
 
-  // ---------- Desenho (Aparência de Floresta & Áreas) ----------
+  // ---------- Desenho (Apar�ncia de Floresta & �reas) ----------
   function drawBar(x, y, w, h, pct, color, glow) {
     ctx.fillStyle = 'rgba(0,0,0,0.65)';
     ctx.fillRect(x, y, w, h);
@@ -872,7 +872,7 @@
     ctx.fillStyle = grd;
     ctx.fillRect(0,0,mapW,mapH);
 
-    // Texturas de chão
+    // Texturas de ch�o
     ctx.fillStyle = currentArea === 'home' ? 'rgba(45,80,40,0.2)' : 'rgba(80,70,50,0.15)';
     for (let gx = 30; gx < mapW; gx += 80) {
       for (let gy = 30; gy < mapH; gy += 80) {
@@ -892,7 +892,7 @@
       ctx.strokeStyle = '#ffc83b'; ctx.lineWidth = 3;
       ctx.strokeRect(mapW/2 - 140, mapH/2 - 100, 280, 200);
       ctx.fillStyle = '#ffaa33'; ctx.font = 'bold 20px Courier New'; ctx.textAlign = 'center';
-      ctx.fillText('⛽ POSTO DE GASOLINA', mapW/2, mapH/2 - 60); ctx.textAlign = 'left';
+      ctx.fillText('? POSTO DE GASOLINA', mapW/2, mapH/2 - 60); ctx.textAlign = 'left';
     }
 
     // Detalhes da Base Militar
@@ -900,19 +900,19 @@
       ctx.strokeStyle = '#4a5e4d'; ctx.lineWidth = 4;
       ctx.strokeRect(40, 40, mapW - 80, mapH - 80); // Cercado militar
       ctx.fillStyle = '#38473a'; ctx.font = 'bold 22px Courier New'; ctx.textAlign = 'center';
-      ctx.fillText('🎖️ BASE MILITAR - ZONA RESTRITA', mapW/2, 90); ctx.textAlign = 'left';
+      ctx.fillText('??? BASE MILITAR - ZONA RESTRITA', mapW/2, 90); ctx.textAlign = 'left';
     }
   }
 
   function drawHouse() {
     if (currentArea === 'home') {
-      // Chão interno de madeira
+      // Ch�o interno de madeira
       ctx.fillStyle = '#3a2618';
       ctx.fillRect(house.x, house.y, house.w, house.h);
       ctx.fillStyle = '#4a3220';
       ctx.fillRect(house.x+8, house.y+8, house.w-16, house.h-16);
 
-      // Tábuas
+      // T�buas
       ctx.strokeStyle = '#2d1c11';
       ctx.lineWidth = 1;
       for (let py = house.y + 24; py < house.y + house.h - 8; py += 24) {
@@ -933,22 +933,22 @@
       ctx.fillRect(house.x + house.w/2 - DOOR_HALF, house.y + house.h - 12, DOOR_HALF*2, 22);
 
     } else if (currentArea === 'gas_station') {
-      // Prédio do Posto de Gasolina (Loja de Conveniência com 3 Cômodos)
+      // Pr�dio do Posto de Gasolina (Loja de Conveni�ncia com 3 C�modos)
       const cx = mapW / 2, cy = mapH / 2;
       const bw = 440, bh = 300, WT = 16;
       const bx = cx - bw/2, by = cy - bh/2;
 
       // Pisos das Salas
       ctx.fillStyle = '#2b2926'; ctx.fillRect(bx, by, bw, bh); // Piso Geral
-      ctx.fillStyle = '#3d3832'; ctx.fillRect(bx + 10, by + 10, 240, bh - 20); // Salão Principal
+      ctx.fillStyle = '#3d3832'; ctx.fillRect(bx + 10, by + 10, 240, bh - 20); // Sal�o Principal
       ctx.fillStyle = '#26332a'; ctx.fillRect(bx + 276, by + 10, bw - 286, 130); // Estoque
-      ctx.fillStyle = '#332a26'; ctx.fillRect(bx + 276, by + 160, bw - 286, bh - 170); // Escritório
+      ctx.fillStyle = '#332a26'; ctx.fillRect(bx + 276, by + 160, bw - 286, bh - 170); // Escrit�rio
 
-      // Rótulos dos Cômodos
+      // R�tulos dos C�modos
       ctx.fillStyle = '#d4a059'; ctx.font = 'bold 13px Courier New'; ctx.textAlign = 'center';
-      ctx.fillText('LOJA DE CONVENIÊNCIA', bx + 130, by + 30);
+      ctx.fillText('LOJA DE CONVENI�NCIA', bx + 130, by + 30);
       ctx.fillText('ESTOQUE', bx + 350, by + 30);
-      ctx.fillText('ESCRITÓRIO', bx + 350, by + 180);
+      ctx.fillText('ESCRIT�RIO', bx + 350, by + 180);
       ctx.textAlign = 'left';
 
       // Bombas de Gasolina cobertas na frente
@@ -969,29 +969,29 @@
       ctx.shadowBlur = 0;
 
     } else if (currentArea === 'military_base') {
-      // Bunker Militar com 4 Cômodos + Corredor Central
+      // Bunker Militar com 4 C�modos + Corredor Central
       const cx = mapW / 2, cy = mapH / 2;
       const bw = 560, bh = 380, WT = 16;
       const bx = cx - bw/2, by = cy - bh/2;
 
-      // Pisos dos Cômodos
+      // Pisos dos C�modos
       ctx.fillStyle = '#1e2420'; ctx.fillRect(bx, by, bw, bh); // Piso Geral
       ctx.fillStyle = '#2a332c'; ctx.fillRect(bx + 226, by + 10, 98, bh - 20); // Corredor Central
       ctx.fillStyle = '#222d38'; ctx.fillRect(bx + 10, by + 10, 194, 170); // Sala de Comando
       ctx.fillStyle = '#382a22'; ctx.fillRect(bx + 10, by + 195, 194, bh - 205); // Armaria
       ctx.fillStyle = '#223831'; ctx.fillRect(bx + 346, by + 10, 204, 170); // Enfermaria
-      ctx.fillStyle = '#2d2838'; ctx.fillRect(bx + 346, by + 195, 204, bh - 205); // Dormitório
+      ctx.fillStyle = '#2d2838'; ctx.fillRect(bx + 346, by + 195, 204, bh - 205); // Dormit�rio
 
-      // Rótulos dos Cômodos
+      // R�tulos dos C�modos
       ctx.fillStyle = '#77b585'; ctx.font = 'bold 12px Courier New'; ctx.textAlign = 'center';
       ctx.fillText('COMANDO / RADAR', bx + 107, by + 30);
-      ctx.fillText('ARMARIA / MUNIÇÃO', bx + 107, by + 215);
+      ctx.fillText('ARMARIA / MUNI��O', bx + 107, by + 215);
       ctx.fillText('ENFERMARIA MILITAR', bx + 448, by + 30);
-      ctx.fillText('DORMITÓRIO', bx + 448, by + 215);
+      ctx.fillText('DORMIT�RIO', bx + 448, by + 215);
       ctx.fillText('CORREDOR', cx, by + 30);
       ctx.textAlign = 'left';
 
-      // Torres de Vigilância nos cantos da base
+      // Torres de Vigil�ncia nos cantos da base
       [[60,60],[mapW-100,60],[60,mapH-100],[mapW-100,mapH-100]].forEach(([tx,ty])=>{
         ctx.fillStyle = '#2c382f'; ctx.fillRect(tx, ty, 40, 40);
         ctx.strokeStyle = '#4e6353'; ctx.lineWidth = 2; ctx.strokeRect(tx, ty, 40, 40);
@@ -1034,7 +1034,7 @@
     if (distance(player.x, player.y, truck.x, truck.y) < 65) {
       ctx.fillStyle = '#ffc83b';
       ctx.font = 'bold 12px Courier New'; ctx.textAlign = 'center';
-      ctx.fillText('🚚 CAMINHONETE [E / A / Enter]', truck.x, truck.y - 32);
+      ctx.fillText('?? CAMINHONETE [E / A / Enter]', truck.x, truck.y - 32);
       ctx.textAlign = 'left';
     }
   }
@@ -1048,7 +1048,7 @@
     }
 
     ctx.save();
-    ctx.translate(-cameraX, -cameraY); // Translação da câmera nos mapas!
+    ctx.translate(-cameraX, -cameraY); // Transla��o da c�mera nos mapas!
 
     drawMapFloor();
     drawHouse();
@@ -1091,7 +1091,7 @@
       ctx.fillRect(generator.x-28, generator.y-generator.radius-14, 56*(generator.health/generator.maxHealth), 7);
     }
 
-    // Provisões
+    // Provis�es
     for (const f of foods) {
       ctx.save();
       ctx.shadowColor = '#ffc83b'; ctx.shadowBlur = 10;
@@ -1118,14 +1118,14 @@
       ctx.beginPath(); ctx.arc(z.x+5, z.y-5, 3, 0, Math.PI*2); ctx.fill();
     }
 
-    // Projéteis Jogador
+    // Proj�teis Jogador
     ctx.save();
     ctx.shadowColor = '#ffe066'; ctx.shadowBlur = 10;
     ctx.fillStyle = '#ffe066';
     for (const b of bullets) { ctx.beginPath(); ctx.arc(b.x, b.y, b.radius, 0, Math.PI*2); ctx.fill(); }
     ctx.restore();
 
-    // Projéteis Inimigos (Militar)
+    // Proj�teis Inimigos (Militar)
     ctx.save();
     ctx.shadowColor = '#00ffcc'; ctx.shadowBlur = 10;
     ctx.fillStyle = '#00ffcc';
@@ -1146,14 +1146,14 @@
     ctx.fillRect(24, -5, 7, 10);
     ctx.restore();
 
-    // Escuridão da Noite
+    // Escurid�o da Noite
     if (phase === 'night') {
       const t = clamp(phaseTimer / NIGHT_DURATION, 0, 1);
       ctx.fillStyle = `rgba(3,8,4,${0.4 + 0.2*(1-t)})`;
       ctx.fillRect(0,0,mapW,mapH);
     }
 
-    ctx.restore(); // Fim do isolamento da Câmera!
+    ctx.restore(); // Fim do isolamento da C�mera!
 
     drawHUD();
 
@@ -1161,8 +1161,8 @@
     if (travelMenuOpen) drawTravelMenu();
     if (adminMenuOpen) drawAdminMenu();
 
-    if (gameState === 'win') drawEndScreen('VOCÊ SOBREVIVEU À FLORESTA!', '#ffc83b');
-    if (gameState === 'gameover') drawEndScreen('VOCÊ FOI DEVORADO', '#ff4444');
+    if (gameState === 'win') drawEndScreen('VOC� SOBREVIVEU � FLORESTA!', '#ffc83b');
+    if (gameState === 'gameover') drawEndScreen('VOC� FOI DEVORADO', '#ff4444');
   }
 
   // ---------- Menu Principal ----------
@@ -1179,7 +1179,7 @@
 
     ctx.textAlign = 'center';
     ctx.fillStyle = '#8b5a2b'; ctx.font = 'bold 14px Courier New';
-    ctx.fillText('🌲 SOBREVIVÊNCIA NA FLORESTA 🌲', W/2, py + 35);
+    ctx.fillText('?? SOBREVIV�NCIA NA FLORESTA ??', W/2, py + 35);
     ctx.fillStyle = '#ffc83b'; ctx.font = 'bold 30px Courier New';
     ctx.fillText('ZOMBIE RUSH', W/2, py + 70);
 
@@ -1198,7 +1198,7 @@
       ctx.textAlign = 'left';
       ctx.font = 'bold 16px Courier New';
       ctx.fillStyle = selected ? '#ffc83b' : '#aaa';
-      ctx.fillText((selected ? '▶ ' : '  ') + m.name, px + 45, iy + 22);
+      ctx.fillText((selected ? '? ' : '  ') + m.name, px + 45, iy + 22);
 
       ctx.font = '11px Courier New';
       ctx.fillStyle = selected ? '#ddd' : '#777';
@@ -1208,7 +1208,7 @@
     ctx.textAlign = 'center';
     ctx.font = 'bold 13px Courier New';
     ctx.fillStyle = '#888';
-    ctx.fillText('Navegar: W/S / Setas / D-Pad  |  Confirmar: ENTER / Espaço / 🎮 A', W/2, py + ph - 20);
+    ctx.fillText('Navegar: W/S / Setas / D-Pad  |  Confirmar: ENTER / Espa�o / ?? A', W/2, py + ph - 20);
     ctx.textAlign = 'left';
   }
 
@@ -1217,20 +1217,20 @@
     ctx.font = 'bold 13px Courier New';
     ctx.fillStyle = '#d4a059';
     ctx.textAlign = 'left';
-    ctx.fillText('❤️ Vida', bx, 24 - 6);
+    ctx.fillText('?? Vida', bx, 24 - 6);
     drawBar(bx, 24, bw, bh, player.health/player.maxHealth, '#ff4444', '#ff4444');
-    ctx.fillText('🍖 Fome (4x)', bx, 24+gap - 6);
+    ctx.fillText('?? Fome (4x)', bx, 24+gap - 6);
     drawBar(bx, 24+gap, bw, bh, player.hungerLevel/100, '#ffc83b', '#ffc83b');
 
     if (currentArea === 'home') {
-      ctx.fillText('⚡ Gerador (4x)', bx, 24+gap*2 - 6);
+      ctx.fillText('? Gerador (4x)', bx, 24+gap*2 - 6);
       drawBar(bx, 24+gap*2, bw, bh, generator.health/generator.maxHealth, '#ff9900', '#ff9900');
     }
 
     ctx.textAlign = 'left';
     ctx.font = 'bold 16px Courier New';
     ctx.fillStyle = phase === 'day' ? '#ffc83b' : '#8fb3ff';
-    const icon = phase === 'day' ? '☀️' : '🌙';
+    const icon = phase === 'day' ? '??' : '??';
     const mins = Math.floor(phaseTimer/60), secs = Math.floor(phaseTimer%60);
     const targetDays = MODES.find(m => m.key === gameMode).days;
     const dayStr = targetDays === Infinity ? `Dia ${dayIndex} (Infinito)` : `Dia ${dayIndex}/${targetDays}`;
@@ -1240,17 +1240,17 @@
 
     ctx.font = 'bold 15px Courier New';
     ctx.fillStyle = '#ffc83b';
-    ctx.fillText(`💰 ${currency}   🍎 ${player.foodCount}   ${godMode?'👑 ADMIN GODMODE':''}`, 24, 56);
+    ctx.fillText(`?? ${currency}   ?? ${player.foodCount}   ${godMode?'?? ADMIN GODMODE':''}`, 24, 56);
 
     ctx.textAlign = 'center';
     ctx.font = 'bold 15px Courier New';
     ctx.fillStyle = '#fff';
     ctx.fillText(`${WEAPONS[weaponTier].name}: ${ammo}/${getMaxAmmo()}${reloading ? ' (recarregando...)' : ''}`, W/2, H - 24);
 
-    // Botão de acelerar dia
+    // Bot�o de acelerar dia
     if (phase === 'day') {
       ctx.fillStyle = '#ffc83b'; ctx.font = 'bold 12px Courier New';
-      ctx.fillText('⏩ Pressione F / SELECT no gamepad para Acelerar para a Noite', W/2, H - 46);
+      ctx.fillText('? Pressione F / SELECT no gamepad para Acelerar para a Noite', W/2, H - 46);
     }
 
     ctx.textAlign = 'left';
@@ -1281,7 +1281,7 @@
     ctx.fillText('MERCADOR DA FLORESTA', W/2, py + 35);
     ctx.font = '14px Courier New';
     ctx.fillStyle = '#ffc83b';
-    ctx.fillText(`💰 Moedas: ${currency}`, W/2, py + 60);
+    ctx.fillText(`?? Moedas: ${currency}`, W/2, py + 60);
 
     const items = getShopItems();
     items.forEach((item, i) => {
@@ -1302,7 +1302,7 @@
     ctx.textAlign = 'center';
     ctx.font = '12px Courier New';
     ctx.fillStyle = 'rgba(255,255,255,0.6)';
-    ctx.fillText('W/S / Stick: navegar   |   Enter / 🎮 A: comprar   |   Q / 🎮 B: fechar', W/2, py + panelH - 14);
+    ctx.fillText('W/S / Stick: navegar   |   Enter / ?? A: comprar   |   Q / ?? B: fechar', W/2, py + panelH - 14);
     ctx.textAlign = 'left';
   }
 
@@ -1317,7 +1317,7 @@
     ctx.textAlign = 'center';
     ctx.font = 'bold 22px Courier New';
     ctx.fillStyle = '#ffc83b';
-    ctx.fillText('🚚 VIAGEM DE CAMINHONETE', W/2, py + 40);
+    ctx.fillText('?? VIAGEM DE CAMINHONETE', W/2, py + 40);
 
     const dests = getTravelDestinations();
     dests.forEach((d, i) => {
@@ -1330,7 +1330,7 @@
       ctx.textAlign = 'left';
       ctx.font = 'bold 15px Courier New';
       ctx.fillStyle = d.unlocked ? (selected ? '#ffc83b' : '#fff') : '#777';
-      ctx.fillText((selected ? '▶ ' : '  ') + d.name + (d.unlocked ? '' : ' 🔒'), px + 35, iy + 22);
+      ctx.fillText((selected ? '? ' : '  ') + d.name + (d.unlocked ? '' : ' ??'), px + 35, iy + 22);
 
       ctx.font = '11px Courier New';
       ctx.fillStyle = d.unlocked ? '#bbb' : '#666';
@@ -1340,7 +1340,7 @@
     ctx.textAlign = 'center';
     ctx.font = '12px Courier New';
     ctx.fillStyle = '#aaa';
-    ctx.fillText('W/S: navegar  |  ENTER / 🎮 A: Viajar  |  ESC / R / 🎮 B: Cancelar', W/2, py + panelH - 18);
+    ctx.fillText('W/S: navegar  |  ENTER / ?? A: Viajar  |  ESC / R / ?? B: Cancelar', W/2, py + panelH - 18);
     ctx.textAlign = 'left';
   }
 
@@ -1355,15 +1355,15 @@
     ctx.textAlign = 'center';
     ctx.font = 'bold 22px Courier New';
     ctx.fillStyle = '#ff77ff';
-    ctx.fillText('👑 PAINEL ADMIN (CHEATS)', W/2, py + 35);
+    ctx.fillText('?? PAINEL ADMIN (CHEATS)', W/2, py + 35);
 
     const opts = [
       `Invencibilidade (GodMode): ${godMode?'ATIVADO (ON)':'DESATIVADO'}`,
       `Dar +500 Moedas (Atual: $${currency})`,
       `Alternar Dia / Noite (Fase Atual: ${phase})`,
-      `Avançar +1 Dia (Dia Atual: ${dayIndex})`,
+      `Avan�ar +1 Dia (Dia Atual: ${dayIndex})`,
       `Restaurar Vida & Gerador Totalmente`,
-      `Teleportar para Próxima Área (${currentArea})`,
+      `Teleportar para Pr�xima �rea (${currentArea})`,
     ];
 
     opts.forEach((opt, i) => {
@@ -1376,13 +1376,13 @@
       ctx.textAlign = 'left';
       ctx.font = 'bold 13px Courier New';
       ctx.fillStyle = selected ? '#ffc83b' : '#fff';
-      ctx.fillText((selected ? '▶ ' : '  ') + opt, px + 25, iy + 4);
+      ctx.fillText((selected ? '? ' : '  ') + opt, px + 25, iy + 4);
     });
 
     ctx.textAlign = 'center';
     ctx.font = '12px Courier New';
     ctx.fillStyle = '#aaa';
-    ctx.fillText('F2: Fechar Painel  |  ENTER / 🎮 A: Executar Cheat', W/2, py + panelH - 16);
+    ctx.fillText('F2: Fechar Painel  |  ENTER / ?? A: Executar Cheat', W/2, py + panelH - 16);
     ctx.textAlign = 'left';
   }
 
@@ -1400,11 +1400,11 @@
     ctx.font = 'bold 16px Courier New';
     ctx.fillStyle = '#ffc83b';
     if (gameMode === 'endless') {
-      ctx.fillText(`Você sobreviveu por ${dayIndex} dias na floresta!`, W/2, H/2 + 20);
+      ctx.fillText(`Voc� sobreviveu por ${dayIndex} dias na floresta!`, W/2, H/2 + 20);
     }
     ctx.font = '16px Courier New';
     ctx.fillStyle = '#fff';
-    ctx.fillText('Pressione ENTER ou 🎮 A para voltar ao menu', W/2, H/2 + 55);
+    ctx.fillText('Pressione ENTER ou ?? A para voltar ao menu', W/2, H/2 + 55);
     ctx.textAlign = 'left';
   }
 

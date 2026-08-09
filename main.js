@@ -1,5 +1,5 @@
-﻿/* ============================================
-   CARTRIDGE-8 â€” Engine Principal v1.3
+/* ============================================
+   CARTRIDGE-8 — Engine Principal v1.3
    Console OS v1.3, 3D Cartridge Rack, Synthesizer & Pixel Art Studio
    ============================================ */
 
@@ -20,13 +20,13 @@ const STATE = {
 };
 
 const MODE_INFO = {
-  sandbox: 'SANDBOX: Todos os jogos da biblioteca ficam desbloqueados desde o inÃ­cio. Ideal para explorar livremente.',
-  hardcore: 'HARDCORE: Apenas o primeiro jogo comeÃ§a desbloqueado. VocÃª ganha 1 moeda a cada 30 segundos (mesmo no menu). Cada jogo custa 10 moedas e pode ser comprado na biblioteca.',
+  sandbox: 'SANDBOX: Todos os jogos da biblioteca ficam desbloqueados desde o início. Ideal para explorar livremente.',
+  hardcore: 'HARDCORE: Apenas o primeiro jogo começa desbloqueado. Você ganha 1 moeda a cada 30 segundos (mesmo no menu). Cada jogo custa 10 moedas e pode ser comprado na biblioteca.',
 };
 
-// Metadados dos jogos sÃ£o carregados exclusivamente via games/<id>/info.txt
-// Esta lista Ã© usada apenas como fallback quando os fetchs falham (ex: protocolo file://).
-// ContÃ©m sÃ³ id + color â€” Ãºnico dado visual necessÃ¡rio sem rede (o restante vem do info.txt).
+// Metadados dos jogos são carregados exclusivamente via games/<id>/info.txt
+// Esta lista é usada apenas como fallback quando os fetchs falham (ex: protocolo file://).
+// Contém só id + color — único dado visual necessário sem rede (o restante vem do info.txt).
 const FALLBACK_GAMES = [
   { id: 'demo',                                color: '#0d1f3c' },
   { id: 'airsoft simulator',                   color: '#2a4d36' },
@@ -236,9 +236,9 @@ function updateMenuProfileBadge() {
     return;
   }
   const modeLabel = p.mode === 'hardcore' ? 'HARDCORE' : 'SANDBOX';
-  let html = `ðŸ‘¤ ${p.name} Â· ${modeLabel}`;
+  let html = `👤 ${p.name} · ${modeLabel}`;
   if (p.mode === 'hardcore') {
-    html += `<span class="badge-coins">ðŸª™ ${p.economy.coins}</span>`;
+    html += `<span class="badge-coins">🪙 ${p.economy.coins}</span>`;
   }
   dom.menuProfileBadge.innerHTML = html;
 }
@@ -375,7 +375,7 @@ function renderProfilesManager() {
 
   if (!list.length) {
     dom.profilesManagerList.innerHTML =
-      '<div class="profile-empty-msg"><p>Nenhum perfil. Crie um para comeÃ§ar.</p></div>';
+      '<div class="profile-empty-msg"><p>Nenhum perfil. Crie um para começar.</p></div>';
     C8.profile.managerSelected = -1;
     C8.profile.managerSelectionIndex = 0;
     syncProfilesManagerSelectionUI();
@@ -653,7 +653,7 @@ async function importProfileFromZip(file) {
     const result = await PDB().importProfileData(data, { activate: true });
     if (!result.ok) {
       playBeep(180, 0.1, 'sawtooth', 0.12);
-      alert(result.reason === 'max' ? 'Limite de 5 perfis atingido.' : 'Arquivo invÃ¡lido.');
+      alert(result.reason === 'max' ? 'Limite de 5 perfis atingido.' : 'Arquivo inválido.');
       return;
     }
     playSelectSound();
@@ -662,7 +662,7 @@ async function importProfileFromZip(file) {
     updateMenuProfileBadge();
   } catch {
     playBeep(180, 0.1, 'sawtooth', 0.12);
-    alert('NÃ£o foi possÃ­vel importar o ZIP.');
+    alert('Não foi possível importar o ZIP.');
   }
 }
 
@@ -799,7 +799,7 @@ function playInsertCartSound() {
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
-    // Som mecÃ¢nico de clique do cartucho
+    // Som mecânico de clique do cartucho
     playBeep(120, 0.08, 'sawtooth', 0.15);
     setTimeout(() => playBeep(280, 0.06, 'triangle', 0.12), 40);
     setTimeout(() => playBeep(880, 0.12, 'square', 0.1), 90);
@@ -917,11 +917,11 @@ async function bootIntro() {
   await addLine();
   await typeLine('CARTRIDGE-8 BIOS v1.3.0 (REVISION 2026)', 18);
   await sleep(120);
-  await addLine('Â© 2026 asafgameryDEV. Todos os direitos reservados.', 'dim');
+  await addLine('© 2026 asafgameryDEV. Todos os direitos reservados.', 'dim');
   await sleep(250);
   await addLine();
 
-  await addLine('Verificando hardware e perifÃ©ricos v1.3...', 'dim');
+  await addLine('Verificando hardware e periféricos v1.3...', 'dim');
   await sleep(350);
 
   const checks = [
@@ -930,7 +930,7 @@ async function bootIntro() {
     ['  VRAM : 8 KB detectada',     'ok', 90],
     ['  ESTANTE 3D: Pronta',        'ok', 90],
     ['  SINTETIZADOR: WebAudio OK', 'ok', 90],
-    ['  VÃDEO: Monitor CRT OK',     'ok', 90],
+    ['  VÍDEO: Monitor CRT OK',     'ok', 90],
   ];
   for (const [msg, cls, delay] of checks) {
     await addLine(msg, cls);
@@ -962,7 +962,7 @@ async function runBoot() {
   bar.className = 'terminal-line progress';
   dom.termOut.appendChild(bar);
   for (let i = 0; i <= 20; i++) {
-    bar.textContent = `[${'â–ˆ'.repeat(i)}${'â–‘'.repeat(20 - i)}] ${(i * 5).toString().padStart(3)}%`;
+    bar.textContent = `[${'█'.repeat(i)}${'░'.repeat(20 - i)}] ${(i * 5).toString().padStart(3)}%`;
     dom.termOut.scrollTop = dom.termOut.scrollHeight;
     await sleep(30);
   }
@@ -988,9 +988,9 @@ function handleTerminalKey(key) {
       runBoot();
     } else if (cmd === 'help') {
       addLine();
-      addLine('Comandos disponÃ­veis:', 'dim');
-      addLine('  boot â€” Iniciar o sistema v1.3', 'ok');
-      addLine('  help â€” Esta mensagem', 'ok');
+      addLine('Comandos disponíveis:', 'dim');
+      addLine('  boot — Iniciar o sistema v1.3', 'ok');
+      addLine('  help — Esta mensagem', 'ok');
       addLine();
     } else if (cmd !== '') {
       addLine(`> ${cmd}`);
@@ -1066,7 +1066,7 @@ function menuConfirm() {
 // ============================================================
 //  ESTANTE DE CARTUCHOS 3D (CARTRIDGE SELECT)
 // ============================================================
-// LÃª games/games.json para obter a lista de IDs.
+// Lê games/games.json para obter a lista de IDs.
 // Se falhar, retorna array vazio (nenhum cartucho na estante).
 async function fetchGamesManifest() {
   try {
@@ -1078,9 +1078,9 @@ async function fetchGamesManifest() {
   return FALLBACK_GAMES.map(g => g.id);
 }
 
-// LÃª games/<id>/info.txt e constrÃ³i o objeto do jogo.
+// Lê games/<id>/info.txt e constrói o objeto do jogo.
 // Campos suportados: name, dev, version, desc, color, genre, year.
-// Qualquer campo ausente usa o fallback genÃ©rico abaixo.
+// Qualquer campo ausente usa o fallback genérico abaixo.
 async function fetchGameInfo(gameId) {
   const fallback = FALLBACK_GAMES.find(g => g.id === gameId);
   const defaults = {
@@ -1108,7 +1108,7 @@ async function fetchGameInfo(gameId) {
         if (k && v) info[k] = v;
       }
     });
-    // Garante que o id nunca vem do info.txt (sempre Ã© o nome da pasta)
+    // Garante que o id nunca vem do info.txt (sempre é o nome da pasta)
     info.id = gameId;
     return info;
   } catch {
@@ -1168,7 +1168,7 @@ function renderCartridgeRack() {
         </div>
         <div class="cart-sticker-art">
           <div class="cart-sticker-title">${game.name}</div>
-          <div class="cart-seal-icon">â˜… OFFICIAL SEAL â˜…</div>
+          <div class="cart-seal-icon">★ OFFICIAL SEAL ★</div>
         </div>
       </div>
       <div class="cart-pins-wrap">
@@ -1286,7 +1286,7 @@ function setupSynthApp() {
     };
   });
 
-  // BotÃµes de SFX
+  // Botões de SFX
   $$('.sfx-btn').forEach(btn => {
     btn.onclick = () => {
       const sfx = btn.getAttribute('data-sfx');
@@ -1428,7 +1428,7 @@ async function onEnterLibrary() {
       } else {
         const canBuy = (C8.profile.active?.economy.coins || 0) >= PDB().C8_DB.GAME_PRICE;
         actionsHtml = `
-          <span class="library-price">ðŸª™ ${PDB().C8_DB.GAME_PRICE}</span>
+          <span class="library-price">🪙 ${PDB().C8_DB.GAME_PRICE}</span>
           <button type="button" class="library-buy-btn" data-game-id="${escapeHtml(id)}" ${canBuy ? '' : 'disabled'}>COMPRAR</button>
         `;
       }
@@ -1437,10 +1437,10 @@ async function onEnterLibrary() {
     }
 
     el.innerHTML = `
-      <div class="library-cover" style="background:${game.color || '#0d1f3c'};">ðŸŽ®</div>
+      <div class="library-cover" style="background:${game.color || '#0d1f3c'};">🎮</div>
       <div class="library-info">
         <div class="library-name">${escapeHtml(game.name)}</div>
-        <div class="library-meta">DEV: ${escapeHtml(game.dev)} Â· ${escapeHtml(game.genre)} (${escapeHtml(game.year || '2026')})</div>
+        <div class="library-meta">DEV: ${escapeHtml(game.dev)} · ${escapeHtml(game.genre)} (${escapeHtml(game.year || '2026')})</div>
       </div>
       <div class="library-actions">${actionsHtml}</div>
     `;
@@ -1465,7 +1465,7 @@ async function onEnterLibrary() {
 }
 
 // ============================================================
-//  OPÃ‡Ã•ES
+//  OPÇÕES
 // ============================================================
 function onEnterOptions() {
   C8.options.selectedIndex = 0;
@@ -1628,7 +1628,7 @@ function handleBack() {
   if (C8.state === STATE.GAME) {
     setState(STATE.CARTRIDGE_SELECT);
   } else if (C8.state === STATE.PROFILE_SELECT) {
-    /* nÃ£o volta do boot */
+    /* não volta do boot */
   } else if (C8.state !== STATE.MENU && C8.state !== STATE.BOOT) {
     setState(STATE.MENU);
   }
@@ -1642,7 +1642,7 @@ function handleProfileEditorKey(key) {
   }
 }
 
-// Keyboard Listeners â€” profile editor handled above
+// Keyboard Listeners — profile editor handled above
 document.addEventListener('keydown', e => {
   if (C8.profile.editorOpen && !isMobileInput()) {
     if (e.key === 'Escape') {

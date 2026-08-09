@@ -70,7 +70,7 @@ const WEAPONS = {
         burstDelay: 100
     },
     KNIFE: {
-        name: "Faca Tática",
+        name: "Faca T�tica",
         fireRate: 600,
         capacity: Infinity,
         reloadTime: 0,
@@ -116,22 +116,22 @@ const RANKS = [
 ];
 
 const WEAPONS_SHOP_DATA = [
-    { key: "RIFLE", price: 0, category: "primary", desc: "Fuzil M4A1 padrão tático." },
+    { key: "RIFLE", price: 0, category: "primary", desc: "Fuzil M4A1 padr�o t�tico." },
     { key: "M16", price: 150, category: "primary", desc: "Fuzil de assalto em rajadas de 3 tiros." },
-    { key: "SNIPER", price: 400, category: "primary", desc: "Fuzil de ferrolho. 3 tiros por cartucho de alta precisão." },
-    { key: "SHOTGUN", price: 300, category: "primary", desc: "Escopeta tática calibre 12, dispara 5 projéteis em cone." },
-    { key: "PISTOL", price: 0, category: "secondary", desc: "Pistola leve padrão tático." },
+    { key: "SNIPER", price: 400, category: "primary", desc: "Fuzil de ferrolho. 3 tiros por cartucho de alta precis�o." },
+    { key: "SHOTGUN", price: 300, category: "primary", desc: "Escopeta t�tica calibre 12, dispara 5 proj�teis em cone." },
+    { key: "PISTOL", price: 0, category: "secondary", desc: "Pistola leve padr�o t�tico." },
     { key: "DEAGLE", price: 100, category: "secondary", desc: "Desert Eagle .50 calibre. Alto impacto." },
-    { key: "KNIFE", price: 0, category: "melee", desc: "Faca de combate padrão." },
+    { key: "KNIFE", price: 0, category: "melee", desc: "Faca de combate padr�o." },
     { key: "GOLDKNIFE", price: 250, category: "melee", desc: "Faca banhada a ouro para veteranos e ostentadores." }
 ];
 
 const SKINS_DATA = [
-    { key: "default", name: "Padrão", color: "#4caf50", reqRank: 0 },
+    { key: "default", name: "Padr�o", color: "#4caf50", reqRank: 0 },
     { key: "camo", name: "Camuflado", color: "#795548", reqRank: 2 },
     { key: "shadow", name: "Sombra", color: "#212121", reqRank: 5 },
     { key: "gold", name: "Dourado", color: "#ffd700", reqRank: 9 },
-    { key: "rainbow", name: "Arco-Íris (RGB)", color: "rainbow", reqRank: 15 } // Only for Veterano rank index 15!
+    { key: "rainbow", name: "Arco-�ris (RGB)", color: "rainbow", reqRank: 15 } // Only for Veterano rank index 15!
 ];
 
 // 2. Map Definitions & Layouts
@@ -1412,7 +1412,7 @@ function endGame(reason = "Tempo Esgotado!") {
     let rpChange = 0;
     
     if (gameState.scoreGreen > gameState.scoreRed) {
-        title = "VITÓRIA";
+        title = "VIT�RIA";
         document.getElementById("go-reason").textContent = reason || "O Time Verde ganhou!";
         coinsGained = 50;
         rpChange = 25;
@@ -2058,7 +2058,7 @@ function playThemeMusic() {
         themeMusic.volume = 0.35;
     }
     themeMusic.play().catch(err => {
-        console.log("Aguardando interação para reproduzir theme.mp3");
+        console.log("Aguardando intera��o para reproduzir theme.mp3");
     });
 }
 
@@ -2185,9 +2185,9 @@ function populateArsenalAndShop() {
     shopGrid.innerHTML = "";
     
     const weaponsList = [
-        { key: "RIFLE", name: "Fuzil M4A1", type: "Primária", fireRate: "Rajadas", capacity: 20, range: 650, badgeClass: "primary" },
-        { key: "PISTOL", name: "Pistola G18", type: "Secundária", fireRate: "Semi-Auto", capacity: 15, range: 450, badgeClass: "secondary" },
-        { key: "KNIFE", name: "Faca Tática", type: "Melee", fireRate: "Manual", capacity: "∞", range: 55, badgeClass: "melee" }
+        { key: "RIFLE", name: "Fuzil M4A1", type: "Prim�ria", fireRate: "Rajadas", capacity: 20, range: 650, badgeClass: "primary" },
+        { key: "PISTOL", name: "Pistola G18", type: "Secund�ria", fireRate: "Semi-Auto", capacity: 15, range: 450, badgeClass: "secondary" },
+        { key: "KNIFE", name: "Faca T�tica", type: "Melee", fireRate: "Manual", capacity: "8", range: 55, badgeClass: "melee" }
     ];
     
     weaponsList.forEach(w => {
@@ -2196,9 +2196,9 @@ function populateArsenalAndShop() {
         card.innerHTML = `
             <span class="wep-slot-badge ${w.badgeClass}">${w.type}</span>
             <h4>${w.name}</h4>
-            <div class="wep-subtitle">Equipamento Padrão</div>
+            <div class="wep-subtitle">Equipamento Padr�o</div>
             <div class="wep-stats">
-                <div class="wep-stat"><span>Cadência:</span> <span>${w.fireRate}</span></div>
+                <div class="wep-stat"><span>Cad�ncia:</span> <span>${w.fireRate}</span></div>
                 <div class="wep-stat"><span>Capacidade:</span> <span>${w.capacity}</span></div>
                 <div class="wep-stat"><span>Alcance:</span> <span>${w.range}px</span></div>
             </div>
@@ -2212,9 +2212,9 @@ function populateArsenalAndShop() {
         card.innerHTML = `
             <span class="wep-slot-badge ${w.badgeClass}">${w.type}</span>
             <h4>${w.name}</h4>
-            <div class="wep-subtitle">Disponível no Arsenal</div>
+            <div class="wep-subtitle">Dispon�vel no Arsenal</div>
             <div class="wep-stats">
-                <div class="wep-stat"><span>Cadência:</span> <span>${w.fireRate}</span></div>
+                <div class="wep-stat"><span>Cad�ncia:</span> <span>${w.fireRate}</span></div>
                 <div class="wep-stat"><span>Capacidade:</span> <span>${w.capacity}</span></div>
                 <div class="wep-stat"><span>Alcance:</span> <span>${w.range}px</span></div>
             </div>

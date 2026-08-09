@@ -1,6 +1,6 @@
 /* ============================================
-   CARTRIDGE-8 — Profile Database (IndexedDB)
-   Estrutura extensível para perfis e saves por jogo
+   CARTRIDGE-8 � Profile Database (IndexedDB)
+   Estrutura extens�vel para perfis e saves por jogo
    ============================================ */
 
 'use strict';
@@ -68,7 +68,7 @@ function generateId() {
   return 'p-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
 }
 
-/** Registro padrão de save por jogo — extensível via saves/stats/settings/meta */
+/** Registro padr�o de save por jogo � extens�vel via saves/stats/settings/meta */
 function createEmptyGameRecord(profileId, gameId) {
   const now = Date.now();
   return {
@@ -186,7 +186,7 @@ async function getOrCreateProfileGame(profileId, gameId) {
   return rec;
 }
 
-/** Não acumula moedas offline para perfis hardcore. */
+/** N�o acumula moedas offline para perfis hardcore. */
 function applyPendingCoins(profile) {
   return profile;
 }
@@ -258,7 +258,7 @@ async function updateProfile(profileId, updates) {
   return { ok: true, profile };
 }
 
-/** Exporta perfil + todos os saves de jogos para objeto serializável */
+/** Exporta perfil + todos os saves de jogos para objeto serializ�vel */
 async function exportProfileData(profileId) {
   const profile = await getProfile(profileId);
   if (!profile) return null;

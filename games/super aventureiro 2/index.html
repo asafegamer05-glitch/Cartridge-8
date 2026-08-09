@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Super Aventureiro 2 - Edição Completa</title>
+    <title>Super Aventureiro 2 - Edi��o Completa</title>
     <style>
         * {
             margin: 0;
@@ -55,11 +55,11 @@
     <div id="info">
         <div id="levelDisplay">MENU</div>
         <div class="hud">
-            <div id="scoreDisplay">⭐ Moedas: 0 / 8</div>
-            <div id="livesDisplay">❤️ Vidas: 3</div>
+            <div id="scoreDisplay">? Moedas: 0 / 8</div>
+            <div id="livesDisplay">?? Vidas: 3</div>
         </div>
-        <div id="godmodeDisplay" style="display:none;" class="godmode-indicator">👑 MODO INVENCÍVEL ATIVADO</div>
-        <div class="controls">🎮 Gamepad: D-Pad/analógico mover | A=pular | X=dash | LB+RB=Modo Invencível | ⌨️ Teclado: Setas + Espaço + Shift + R+L</div>
+        <div id="godmodeDisplay" style="display:none;" class="godmode-indicator">?? MODO INVENC�VEL ATIVADO</div>
+        <div class="controls">?? Gamepad: D-Pad/anal�gico mover | A=pular | X=dash | LB+RB=Modo Invenc�vel | ?? Teclado: Setas + Espa�o + Shift + R+L</div>
     </div>
 
     <script>
@@ -76,7 +76,7 @@
         let lives = 3;
         let cameraX = 0;
         const levelWidth = 2400;
-        let godMode = false; // Modo invencível
+        let godMode = false; // Modo invenc�vel
         
         const player = {
             x: 50,
@@ -284,12 +284,12 @@
         
         function updateDisplay() {
             if (gameState === 'menu') {
-                document.getElementById('levelDisplay').textContent = '🎮 SUPER AVENTUREIRO 2';
+                document.getElementById('levelDisplay').textContent = '?? SUPER AVENTUREIRO 2';
             } else {
                 document.getElementById('levelDisplay').textContent = `FASE ${currentLevel} / 5`;
             }
-            document.getElementById('scoreDisplay').textContent = `⭐ Moedas: ${totalCoins} / ${coinsPerLevel}`;
-            document.getElementById('livesDisplay').textContent = godMode ? '👑 ∞ Vidas' : `❤️ Vidas: ${lives}`;
+            document.getElementById('scoreDisplay').textContent = `? Moedas: ${totalCoins} / ${coinsPerLevel}`;
+            document.getElementById('livesDisplay').textContent = godMode ? '?? 8 Vidas' : `?? Vidas: ${lives}`;
             
             const godmodeDisplay = document.getElementById('godmodeDisplay');
             if (godMode) {
@@ -365,7 +365,7 @@
                 if (keys['Enter'] || (gamepad && gamepad.buttons[0]?.pressed)) {
                     if (gameState === 'gameover') {
                         if (godMode) {
-                            // No god mode, só continua
+                            // No god mode, s� continua
                             loadLevel(currentLevel);
                             gameState = 'playing';
                         } else {
@@ -447,7 +447,7 @@
             player.vy += player.gravity;
             player.y += player.vy;
             
-            // Colisão plataformas
+            // Colis�o plataformas
             player.grounded = false;
             for (let plat of platforms) {
                 if (player.x < plat.x + plat.width &&
@@ -526,7 +526,7 @@
                     }
                 }
                 
-                // Colisão jogador-inimigo
+                // Colis�o jogador-inimigo
                 if (player.x < enemy.x + enemy.width &&
                     player.x + player.width > enemy.x &&
                     player.y < enemy.y + enemy.height &&
@@ -554,13 +554,13 @@
                     boss.vx = -boss.vx;
                 }
                 
-                // Colisão com jogador
+                // Colis�o com jogador
                 if (player.x < boss.x + boss.width &&
                     player.x + player.width > boss.x &&
                     player.y < boss.y + boss.height &&
                     player.y + player.height > boss.y) {
                     
-                    // Pulando na cabeça do boss
+                    // Pulando na cabe�a do boss
                     if (player.vy > 0 && player.y + player.height - player.vy <= boss.y + 15 && boss.invincible <= 0) {
                         boss.hp--;
                         boss.invincible = 30;
@@ -612,7 +612,7 @@
                 
                 if (totalCoins >= coinsPerLevel) {
                     if (currentLevel === 5 && boss && boss.hp > 0) {
-                        // Não pode passar sem matar o boss
+                        // N�o pode passar sem matar o boss
                     } else {
                         gameState = 'win';
                     }
@@ -631,7 +631,7 @@
         }
         
         function loseLife() {
-            if (godMode) return; // Modo invencível ignora dano
+            if (godMode) return; // Modo invenc�vel ignora dano
             
             lives--;
             updateDisplay();
@@ -789,7 +789,7 @@
                 ctx.fillRect(player.x, player.y, player.width, player.height);
                 
                 if (godMode) {
-                    // Efeito de aura no modo invencível
+                    // Efeito de aura no modo invenc�vel
                     ctx.strokeStyle = '#f1c40f';
                     ctx.lineWidth = 3;
                     ctx.strokeRect(player.x - 3, player.y - 3, player.width + 6, player.height + 6);
@@ -826,18 +826,18 @@
                 
                 ctx.fillStyle = 'white';
                 ctx.font = '24px Arial';
-                ctx.fillText('🎮 Controles:', canvas.width / 2, 200);
+                ctx.fillText('?? Controles:', canvas.width / 2, 200);
                 ctx.font = '18px Arial';
-                ctx.fillText('Setas/WASD: Mover | Espaço: Pular | Shift/X: Dash', canvas.width / 2, 240);
+                ctx.fillText('Setas/WASD: Mover | Espa�o: Pular | Shift/X: Dash', canvas.width / 2, 240);
                 ctx.fillText('Pular em inimigos: Derrotar (knockback melhorado!)', canvas.width / 2, 270);
-                ctx.fillText('🎮 Gamepad: A=Pular | X=Dash | D-Pad=Mover', canvas.width / 2, 300);
-                ctx.fillText('👑 Segredo: R+L (teclado) ou LB+RB (gamepad) = Modo Invencível', canvas.width / 2, 330);
+                ctx.fillText('?? Gamepad: A=Pular | X=Dash | D-Pad=Mover', canvas.width / 2, 300);
+                ctx.fillText('?? Segredo: R+L (teclado) ou LB+RB (gamepad) = Modo Invenc�vel', canvas.width / 2, 330);
                 
                 ctx.fillStyle = '#2ecc71';
                 ctx.font = '30px Arial';
                 const blink = Math.sin(Date.now() / 500) > 0;
                 if (blink) {
-                    ctx.fillText('PRESSIONE ENTER OU 🎮 A PARA COMEÇAR', canvas.width / 2, 370);
+                    ctx.fillText('PRESSIONE ENTER OU ?? A PARA COME�AR', canvas.width / 2, 370);
                 }
             } else if (gameState === 'gameover') {
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
@@ -848,8 +848,8 @@
                 ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 20);
                 ctx.fillStyle = 'white';
                 ctx.font = '20px Arial';
-                ctx.fillText(`Vidas restantes: ${godMode ? '∞' : lives}`, canvas.width / 2, canvas.height / 2 + 20);
-                ctx.fillText('Pressione ENTER ou 🎮 A para continuar', canvas.width / 2, canvas.height / 2 + 50);
+                ctx.fillText(`Vidas restantes: ${godMode ? '8' : lives}`, canvas.width / 2, canvas.height / 2 + 20);
+                ctx.fillText('Pressione ENTER ou ?? A para continuar', canvas.width / 2, canvas.height / 2 + 50);
             } else if (gameState === 'win') {
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -859,11 +859,11 @@
                 if (currentLevel < 5) {
                     ctx.fillText(`FASE ${currentLevel} COMPLETA!`, canvas.width / 2, canvas.height / 2 - 20);
                 } else {
-                    ctx.fillText('🏆 VITÓRIA FINAL! 🏆', canvas.width / 2, canvas.height / 2 - 20);
+                    ctx.fillText('?? VIT�RIA FINAL! ??', canvas.width / 2, canvas.height / 2 - 20);
                 }
                 ctx.fillStyle = 'white';
                 ctx.font = '20px Arial';
-                ctx.fillText('Pressione ENTER ou 🎮 A para continuar', canvas.width / 2, canvas.height / 2 + 30);
+                ctx.fillText('Pressione ENTER ou ?? A para continuar', canvas.width / 2, canvas.height / 2 + 30);
             } else if (gameState === 'bossDefeated') {
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -873,7 +873,7 @@
                 ctx.fillText('BOSS DERROTADO!', canvas.width / 2, canvas.height / 2 - 20);
                 ctx.fillStyle = 'white';
                 ctx.font = '20px Arial';
-                ctx.fillText('Agora vá até a bandeira para completar a fase!', canvas.width / 2, canvas.height / 2 + 20);
+                ctx.fillText('Agora v� at� a bandeira para completar a fase!', canvas.width / 2, canvas.height / 2 + 20);
             }
         }
         
