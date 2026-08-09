@@ -1,0 +1,24 @@
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Lore (documento interno, não push) (10 mil visitas no site e eu libero uma parte)
+LORE_BIBLE.txt
+EXTRA_SCENES.TXT
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Profile files
+.openclaude-profile.json
+
+# Node (caso use serve pra testar)
+node_modules/
+
+# Misc
+*.log

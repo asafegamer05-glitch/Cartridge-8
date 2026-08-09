@@ -1,0 +1,551 @@
+/* ============================================================
+   SEKIVERSE — Area Themes
+   Unique CSS decorations for each of the 5 game areas
+   ============================================================ */
+
+/* ── AREA 1: Sala do Despertar — Neon / Glitch ────────────── */
+.area-neon #area-container {
+    background: radial-gradient(ellipse at 50% 80%, #1a0008 0%, #0a0a0c 100%);
+}
+
+.area-neon #area-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(255, 0, 51, 0.03) 2px,
+        rgba(255, 0, 51, 0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 1;
+    animation: scanlines 8s linear infinite;
+}
+
+.area-neon #area-container::after {
+    content: '';
+    position: absolute;
+    top: 10%;
+    left: 5%;
+    width: 90%;
+    height: 80%;
+    border: 1px solid rgba(255, 0, 51, 0.12);
+    border-radius: 4px;
+    box-shadow:
+        inset 0 0 60px rgba(255, 0, 51, 0.05),
+        0 0 40px rgba(255, 0, 51, 0.08);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.area-neon .question-text {
+    text-shadow: 0 0 10px rgba(255, 0, 51, 0.3);
+}
+
+.area-neon .option-btn:hover:not(.disabled) {
+    border-color: var(--neon-red);
+    box-shadow: 0 0 20px rgba(255, 0, 51, 0.15);
+}
+
+.area-neon .explorer-element {
+    bottom: 15%;
+    left: 8%;
+    background: var(--neon-red);
+    box-shadow: 0 0 15px var(--neon-red), 0 0 30px rgba(255,0,51,0.3);
+    animation: flicker 3s ease infinite;
+}
+
+/* Neon decoration: floating red lines */
+.area-neon .area-deco-1,
+.area-neon .area-deco-2,
+.area-neon .area-deco-3 {
+    position: absolute;
+    background: var(--neon-red);
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.1;
+}
+
+.area-neon .area-deco-1 {
+    width: 2px;
+    height: 40%;
+    top: 5%;
+    left: 15%;
+    animation: neonLineFloat 6s ease-in-out infinite;
+}
+
+.area-neon .area-deco-2 {
+    width: 120px;
+    height: 1px;
+    bottom: 20%;
+    right: 10%;
+    animation: neonLineFloat 8s ease-in-out infinite reverse;
+}
+
+.area-neon .area-deco-3 {
+    width: 60px;
+    height: 60px;
+    top: 15%;
+    right: 12%;
+    background: transparent;
+    border: 1px solid rgba(255, 0, 51, 0.15);
+    transform: rotate(45deg);
+    animation: rotateSlow 20s linear infinite;
+}
+
+
+/* ── AREA 2: Corredor dos Espelhos — Mirrors / Reflections ── */
+.area-mirrors #area-container {
+    background: linear-gradient(135deg, #0d0b1a 0%, #1a1030 50%, #0d0b1a 100%);
+}
+
+.area-mirrors #area-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(45deg, transparent 45%, rgba(180, 74, 255, 0.04) 50%, transparent 55%),
+        linear-gradient(-45deg, transparent 45%, rgba(0, 170, 255, 0.04) 50%, transparent 55%);
+    background-size: 100px 100px;
+    animation: mirrorShimmer 10s linear infinite;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.area-mirrors #area-container::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 300px;
+    height: 300px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(180,74,255,0.05) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 1;
+    animation: breathe 5s ease-in-out infinite;
+}
+
+.area-mirrors .question-text {
+    text-shadow: 0 0 10px rgba(180, 74, 255, 0.2);
+}
+
+.area-mirrors .option-btn:hover:not(.disabled) {
+    border-color: var(--neon-purple);
+    box-shadow: 0 0 20px rgba(180, 74, 255, 0.15);
+}
+
+.area-mirrors .explorer-element {
+    top: 20%;
+    right: 10%;
+    background: linear-gradient(135deg, var(--neon-purple), var(--neon-blue));
+    box-shadow: 0 0 15px var(--neon-purple);
+    animation: breathe 3s ease-in-out infinite;
+}
+
+/* Mirror decoration: reflected geometric shapes */
+.area-mirrors .area-deco-1 {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    border: 1px solid rgba(180, 74, 255, 0.1);
+    border-radius: 50%;
+    top: 10%;
+    left: 8%;
+    pointer-events: none;
+    z-index: 1;
+    animation: breathe 6s ease-in-out infinite;
+}
+
+.area-mirrors .area-deco-2 {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    border: 1px solid rgba(0, 170, 255, 0.08);
+    border-radius: 50%;
+    bottom: 10%;
+    right: 8%;
+    pointer-events: none;
+    z-index: 1;
+    animation: breathe 6s ease-in-out infinite reverse;
+}
+
+.area-mirrors .area-deco-3 {
+    position: absolute;
+    width: 150px;
+    height: 150px;
+    top: 50%;
+    left: 5%;
+    transform: translateY(-50%);
+    border: 1px solid rgba(180, 74, 255, 0.06);
+    pointer-events: none;
+    z-index: 1;
+    animation: rotateSlow 30s linear infinite;
+}
+
+
+/* ── AREA 3: Sala das Engrenagens — Steampunk ─────────────── */
+.area-steampunk #area-container {
+    background: radial-gradient(ellipse at 30% 70%, #1a1208 0%, #0d0a05 100%);
+}
+
+.area-steampunk #area-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 10% 20%, rgba(205, 127, 50, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(184, 115, 51, 0.04) 0%, transparent 40%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.area-steampunk .question-text {
+    text-shadow: 0 0 8px rgba(205, 127, 50, 0.2);
+}
+
+.area-steampunk .option-btn {
+    border-color: rgba(205, 127, 50, 0.15);
+}
+
+.area-steampunk .option-btn:hover:not(.disabled) {
+    border-color: var(--bronze);
+    box-shadow: 0 0 20px rgba(205, 127, 50, 0.15);
+}
+
+.area-steampunk .explorer-element {
+    bottom: 20%;
+    right: 12%;
+    background: var(--bronze);
+    box-shadow: 0 0 15px var(--bronze);
+    animation: gearSpinExplorer 4s linear infinite;
+    border-radius: 30%;
+}
+
+/* Gears decoration */
+.area-steampunk .area-deco-1 {
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    top: 5%;
+    right: 5%;
+    border: 3px solid rgba(205, 127, 50, 0.08);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 1;
+    animation: gearSpin 10s linear infinite;
+}
+
+.area-steampunk .area-deco-1::after {
+    content: '⚙';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 4rem;
+    opacity: 0.06;
+}
+
+.area-steampunk .area-deco-2 {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    bottom: 8%;
+    left: 5%;
+    border: 2px solid rgba(205, 127, 50, 0.06);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 1;
+    animation: gearSpin 7s linear infinite reverse;
+}
+
+.area-steampunk .area-deco-2::after {
+    content: '⚙';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2.5rem;
+    opacity: 0.05;
+}
+
+.area-steampunk .area-deco-3 {
+    position: absolute;
+    width: 200px;
+    height: 2px;
+    bottom: 30%;
+    left: 0;
+    background: linear-gradient(90deg, transparent, rgba(205, 127, 50, 0.08), transparent);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Steam particles */
+.area-steampunk .steam-particle {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(205, 127, 50, 0.1);
+    pointer-events: none;
+    z-index: 1;
+    animation: steamRise 5s ease-in-out infinite;
+}
+
+.area-steampunk .steam-particle:nth-child(2) { left: 15%; animation-delay: 1s; animation-duration: 6s; }
+.area-steampunk .steam-particle:nth-child(3) { left: 85%; animation-delay: 2s; animation-duration: 4s; }
+.area-steampunk .steam-particle:nth-child(4) { left: 50%; animation-delay: 3s; animation-duration: 7s; }
+
+
+/* ── AREA 4: Laboratório Digital — Matrix ─────────────────── */
+.area-matrix #area-container {
+    background: #000a00;
+}
+
+.area-matrix #area-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 1px,
+            rgba(0, 255, 65, 0.015) 1px,
+            rgba(0, 255, 65, 0.015) 2px
+        );
+    pointer-events: none;
+    z-index: 1;
+}
+
+.area-matrix .question-text {
+    font-family: var(--font-mono);
+    color: var(--matrix-green);
+    text-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+}
+
+.area-matrix .question-number {
+    color: rgba(0, 255, 65, 0.3);
+}
+
+.area-matrix .option-btn {
+    font-family: var(--font-mono);
+    border-color: rgba(0, 255, 65, 0.12);
+    color: rgba(0, 255, 65, 0.7);
+}
+
+.area-matrix .option-btn:hover:not(.disabled) {
+    border-color: var(--matrix-green);
+    box-shadow: 0 0 20px rgba(0, 255, 65, 0.15);
+    background: rgba(0, 255, 65, 0.05);
+}
+
+.area-matrix .explorer-element {
+    top: 25%;
+    left: 6%;
+    background: var(--matrix-green);
+    box-shadow: 0 0 15px var(--matrix-green);
+    animation: flicker 2s ease infinite;
+}
+
+/* Matrix rain columns */
+.area-matrix .matrix-column {
+    position: absolute;
+    top: -100%;
+    width: 16px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: rgba(0, 255, 65, 0.15);
+    line-height: 1.4;
+    text-align: center;
+    pointer-events: none;
+    z-index: 1;
+    animation: matrixFall linear infinite;
+    white-space: pre;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    letter-spacing: 4px;
+}
+
+.area-matrix .matrix-column:nth-child(1) { left: 3%; animation-duration: 12s; animation-delay: 0s; }
+.area-matrix .matrix-column:nth-child(2) { left: 12%; animation-duration: 15s; animation-delay: 2s; }
+.area-matrix .matrix-column:nth-child(3) { left: 25%; animation-duration: 10s; animation-delay: 4s; }
+.area-matrix .matrix-column:nth-child(4) { left: 40%; animation-duration: 18s; animation-delay: 1s; }
+.area-matrix .matrix-column:nth-child(5) { left: 55%; animation-duration: 13s; animation-delay: 3s; }
+.area-matrix .matrix-column:nth-child(6) { left: 70%; animation-duration: 11s; animation-delay: 5s; }
+.area-matrix .matrix-column:nth-child(7) { left: 82%; animation-duration: 14s; animation-delay: 0.5s; }
+.area-matrix .matrix-column:nth-child(8) { left: 93%; animation-duration: 16s; animation-delay: 2.5s; }
+
+
+/* ── AREA 5: O Vazio — Void / Chaos ───────────────────────── */
+.area-void #area-container {
+    background: #f0f0f0;
+    animation: voidColorShift 15s ease-in-out infinite, voidContainerTremble 0.2s ease infinite;
+}
+
+.area-void #area-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 50%, transparent 30%, rgba(0,0,0,0.02) 100%);
+    pointer-events: none;
+    z-index: 1;
+    animation: voidDistort 8s ease-in-out infinite;
+}
+
+.area-void .question-text {
+    color: #222;
+    animation: voidTextGlitch 10s ease infinite;
+}
+
+.area-void .question-number {
+    color: rgba(0,0,0,0.25);
+}
+
+.area-void .option-btn {
+    border-color: rgba(0,0,0,0.1);
+    color: #333;
+    background: rgba(255,255,255,0.5);
+}
+
+.area-void .option-btn:hover:not(.disabled) {
+    border-color: rgba(0,0,0,0.3);
+    background: rgba(255,255,255,0.8);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.area-void .option-btn.correct {
+    border-color: #00cc66 !important;
+    background: rgba(0, 204, 102, 0.15) !important;
+    color: #00aa55 !important;
+}
+
+.area-void .option-btn.wrong {
+    border-color: #cc0033 !important;
+    background: rgba(204, 0, 51, 0.1) !important;
+    color: #cc0033 !important;
+}
+
+.area-void .explorer-element {
+    top: 50%;
+    right: 8%;
+    background: #333;
+    box-shadow: 0 0 15px rgba(0,0,0,0.3);
+    animation: voidFloat 4s ease-in-out infinite;
+}
+
+.area-void .minigame-title,
+.area-void .minigame-desc {
+    color: #333;
+}
+
+.area-void .order-field {
+    border-color: rgba(0,0,0,0.1);
+    background: rgba(255,255,255,0.3);
+}
+
+.area-void .order-circle {
+    border-color: rgba(0,0,0,0.2);
+    background: rgba(255,255,255,0.5);
+    color: #333;
+}
+
+.area-void .order-circle:hover {
+    border-color: #333;
+    box-shadow: 0 0 20px rgba(0,0,0,0.2);
+}
+
+.area-void .order-circle.clicked {
+    background: #333;
+    border-color: #333;
+    color: #fff;
+}
+
+.area-void .submit-btn {
+    border-color: rgba(0,0,0,0.2);
+    color: #555;
+}
+
+.area-void .submit-btn:hover {
+    border-color: #333;
+    color: #222;
+}
+
+/* Void decoration: floating fragments */
+.area-void .area-deco-1 {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    top: 15%;
+    left: 10%;
+    border: 1px solid rgba(0,0,0,0.05);
+    pointer-events: none;
+    z-index: 1;
+    animation: voidFloat 7s ease-in-out infinite;
+}
+
+.area-void .area-deco-2 {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    bottom: 25%;
+    right: 15%;
+    background: rgba(0,0,0,0.03);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 1;
+    animation: voidFloat 5s ease-in-out infinite reverse;
+}
+
+.area-void .area-deco-3 {
+    position: absolute;
+    width: 60px;
+    height: 1px;
+    top: 40%;
+    right: 20%;
+    background: rgba(0,0,0,0.05);
+    pointer-events: none;
+    z-index: 1;
+    animation: voidFloat 9s ease-in-out infinite;
+    transform-origin: center;
+}
+
+/* Progressive chaos — adds more distortion during gameplay */
+.area-void.chaos-1 #area-container { animation-duration: 10s, 0.18s; }
+.area-void.chaos-2 #area-container { animation-duration: 6s, 0.15s; filter: hue-rotate(30deg); }
+.area-void.chaos-3 #area-container { animation-duration: 3s, 0.12s; filter: hue-rotate(60deg) saturate(1.5); }
+.area-void.chaos-4 #area-container { animation-duration: 2s, 0.08s; filter: hue-rotate(120deg) saturate(2) contrast(1.1); }
+
+
+/* ── HUD Overrides per Area ───────────────────────────────── */
+.area-neon #hud { border-bottom-color: rgba(255, 0, 51, 0.15); }
+.area-mirrors #hud { border-bottom-color: rgba(180, 74, 255, 0.15); }
+.area-steampunk #hud { border-bottom-color: rgba(205, 127, 50, 0.15); }
+.area-matrix #hud {
+    border-bottom-color: rgba(0, 255, 65, 0.15);
+    font-family: var(--font-mono);
+}
+.area-matrix #hud-timer {
+    color: var(--matrix-green);
+    text-shadow: 0 0 15px rgba(0, 255, 65, 0.5);
+}
+.area-void #hud {
+    background: rgba(240, 240, 240, 0.95);
+    border-bottom-color: rgba(0,0,0,0.08);
+}
+.area-void #hud-timer {
+    color: #cc0033;
+    text-shadow: none;
+}
+.area-void #hud-area,
+.area-void #hud-progress {
+    color: rgba(0,0,0,0.4);
+}
+.area-void #badges-btn {
+    background: rgba(0,0,0,0.04);
+    border-color: rgba(0,0,0,0.1);
+    color: rgba(0,0,0,0.4);
+}

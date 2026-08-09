@@ -1,0 +1,7 @@
+name=sekiverse
+dev=asafgamery
+version=1.4
+desc=jogo de terror e puzzle sobre escolhas.
+color=#0d1f3c
+genre=horror
+year=2026

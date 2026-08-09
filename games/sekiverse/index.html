@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sekiverse — Um jogo de escape room no browser com puzzles de lógica, 5 áreas temáticas e 3 finais diferentes. Feito por asafgamer.">
+    <title>SEKIVERSE</title>
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/main.css?v=42">
+    <link rel="stylesheet" href="css/areas.css?v=42">
+    <link rel="stylesheet" href="css/animations.css?v=42">
+
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌀</text></svg>">
+</head>
+<body>
+
+    <!-- ═══════════════════════════════════════════════════════
+         SCREEN: Menu
+         ═══════════════════════════════════════════════════════ -->
+    <div id="menu-screen" class="screen active">
+        <h1 class="menu-title glitch" data-text="SEKIVERSE">SEKIVERSE</h1>
+        <p class="menu-subtitle">escape the unknown</p>
+
+        <div class="menu-buttons">
+            <button id="play-btn" data-i18n="play">Play</button>
+            <div class="menu-secondary-buttons">
+                <button id="lang-btn" data-i18n="langBtn">🇺🇸 EN</button>
+                <button id="options-btn" data-i18n="options">⚙ Opções</button>
+                <a href="https://asafegamer05-glitch.github.io/Portf-lio-/" target="_blank" id="portfolio-btn" data-i18n="portfolio">🌐 Portfólio</a>
+            </div>
+        </div>
+
+        <p class="menu-save-tip" data-i18n="saveTip">💾 Você pode exportar e importar seu save! Abra o menu de <strong>Opções</strong> e vá até o final.</p>
+
+        <!-- Stats for returning players -->
+        <div id="menu-stats" class="menu-stats"></div>
+
+        <div class="credits" data-i18n="madeBy">Feito por asafgamer</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         SCREEN: Intro / Lore
+         ═══════════════════════════════════════════════════════ -->
+    <div id="intro-screen" class="screen hidden">
+        <div class="lore-container">
+            <div class="lore-text"></div>
+            <span class="lore-cursor"></span>
+            <button id="continue-btn" data-i18n="continue">Continuar</button>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         SCREEN: Game
+         ═══════════════════════════════════════════════════════ -->
+    <div id="game-screen" class="screen hidden">
+        <!-- HUD -->
+        <div id="hud">
+            <div id="hud-timer">05:30</div>
+            <div id="hud-area">---</div>
+            <div id="hud-progress">0/5</div>
+            <div id="hud-clicks">🖱️ 0</div>
+            <button id="badges-btn" data-i18n="badgesBtn">🏆 Badges</button>
+        </div>
+
+        <!-- Area Container -->
+        <div id="area-container">
+            <div id="puzzle-container"></div>
+        </div>
+
+        <!-- Area Transition Overlay -->
+        <div id="area-transition">
+            <div class="transition-area-name"></div>
+            <div class="transition-subtitle"></div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         OVERLAY: Badges
+         ═══════════════════════════════════════════════════════ -->
+    <div id="badges-overlay">
+        <div class="badges-title" data-i18n="badgesTitle">Conquistas</div>
+        <div class="badges-grid"></div>
+        <button id="close-badges-btn" data-i18n="back">Voltar</button>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         OVERLAY: Options
+         ═══════════════════════════════════════════════════════ -->
+    <div id="options-overlay">
+        <div class="options-title" data-i18n="optionsTitle">⚙ Opções</div>
+        <div id="options-list" class="options-list"></div>
+        <div class="options-save-actions">
+            <button id="export-save" class="save-action-btn" data-i18n="exportSave">📥 Exportar Save (.json)</button>
+            <button id="import-save" class="save-action-btn" data-i18n="importSave">📤 Importar Save</button>
+            <button id="clear-save" class="save-action-btn danger" data-i18n="clearSave">🗑️ Apagar Progresso</button>
+        </div>
+        <button id="close-options-btn" data-i18n="back">Voltar</button>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         SCREEN: Ending
+         ═══════════════════════════════════════════════════════ -->
+    <div id="ending-screen" class="screen hidden">
+        <div class="ending-container"></div>
+    </div>
+
+    <div id="gamepad-cursor" class="gamepad-cursor hidden"></div>
+    <div id="virtual-keyboard-overlay" class="virtual-keyboard-overlay hidden"></div>
+
+    <!-- Scripts (load order matters) -->
+    <script src="js/i18n.js?v=42"></script>
+    <script src="js/data.js?v=42"></script>
+    <script src="js/timer.js?v=42"></script>
+    <script src="js/badges.js?v=42"></script>
+    <script src="js/ui.js?v=42"></script>
+    <script src="js/puzzles.js?v=42"></script>
+    <script src="js/game.js?v=42"></script>
+
+</body>
+</html>
